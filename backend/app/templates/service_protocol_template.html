@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8" />
+    <title>Service Protocol {{ protocol.request_number }}</title>
+    <style>
+        @page { size: A4; margin: 15mm; }
+        body { font-family: Arial, sans-serif; color: #1f2937; font-size: 12px; }
+        h1, h2 { margin: 0; }
+        .header { margin-bottom: 18px; border-bottom: 2px solid #0f4c81; padding-bottom: 10px; }
+        .title { font-size: 22px; font-weight: 700; color: #0f4c81; }
+        .subtitle { margin-top: 4px; color: #4b5563; }
+        .section { margin-top: 16px; }
+        .section-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; color: #111827; }
+        .grid { width: 100%; border-collapse: collapse; }
+        .grid td, .grid th { border: 1px solid #d1d5db; padding: 6px 8px; vertical-align: top; }
+        .grid th { background: #f3f4f6; text-align: left; }
+        .label { font-weight: 700; width: 180px; }
+        .muted { color: #6b7280; }
+        .block { white-space: pre-wrap; line-height: 1.45; }
+        .signature-grid { width: 100%; border-collapse: collapse; }
+        .signature-grid td { width: 50%; vertical-align: top; padding: 8px; border: 1px solid #d1d5db; }
+        .signature-label { font-weight: 700; margin-bottom: 8px; }
+        .signature-meta { color: #6b7280; font-size: 11px; margin-top: 6px; }
+        .signature-image { max-width: 100%; max-height: 110px; object-fit: contain; border-bottom: 1px solid #d1d5db; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">Service Protocol</div>
+        <div class="subtitle">{{ company_name }} | {{ protocol.request_number }}</div>
+    </div>
+
+    <table class="grid">
+        <tr><td class="label">Client</td><td>{{ protocol.client_name }}</td></tr>
+        <tr><td class="label">Site</td><td>{{ protocol.site_name }}{% if protocol.site_address %} | {{ protocol.site_address }}{% endif %}</td></tr>
+        <tr><td class="label">Reason for visit</td><td>{{ protocol.reason_for_visit }}</td></tr>
+        <tr><td class="label">Repair type</td><td>{{ protocol.repair_type_code or '-' }}</td></tr>
+        <tr><td class="label">Execution date</td><td>{{ protocol.execution_date or '-' }}</td></tr>
+        <tr><td class="label">Worked time</td><td>{{ protocol.worked_time_from or '-' }} - {{ protocol.worked_time_to or '-' }}</td></tr>
+        <tr><td class="label">Technicians</td><td>{{ protocol.technicians|join(', ') if protocol.technicians else '-' }}</td></tr>
+    </table>
+
+    <div class="section">
+        <div class="section-title">Worked Time Breakdown</div>
+        <table class="grid">
+            <thead>
+                <tr>
+                    <th>Technician</th>
+                    <th>Regular</th>
+                    <th>Overtime</th>
+                    <th>Weekend</th>
+                    <th>Holiday</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in protocol.technician_time_breakdown %}
+                <tr>
+                    <td>{{ item.technician_name }}</td>
+                    <td>{{ item.regular_minutes }}</td>
+                    <td>{{ item.overtime_minutes }}</td>
+                    <td>{{ item.weekend_minutes }}</td>
+                    <td>{{ item.holiday_minutes }}</td>
+                    <td>{{ item.total_minutes }}</td>
+                </tr>
+                {% endfor %}
+                <tr>
+                    <td><strong>Total</strong></td>
+                    <td><strong>{{ protocol.total_regular_minutes }}</strong></td>
+                    <td><strong>{{ protocol.total_overtime_minutes }}</strong></td>
+                    <td><strong>{{ protocol.total_weekend_minutes }}</strong></td>
+                    <td><strong>{{ protocol.total_holiday_minutes }}</strong></td>
+                    <td><strong>{{ protocol.total_minutes }}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Work Performed</div>
+        <div class="block">{{ protocol.work_description or '-' }}</div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Materials / Spare Parts</div>
+        <table class="grid">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Quantity</th>
+                    <th>Unit</th>
+                    <th>Warehouse</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if protocol.materials %}
+                    {% for item in protocol.materials %}
+                    <tr>
+                        <td>{{ item.material_code }}</td>
+                        <td>{{ item.material_name }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>{{ item.unit }}</td>
+                        <td>{{ item.warehouse_code }} - {{ item.warehouse_name }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="5" class="muted">No materials recorded.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Signatures</div>
+        {% set technician_signature = (protocol.signatures | selectattr('signer_role', 'equalto', 'technician') | list | last) %}
+        {% set client_signature = (protocol.signatures | selectattr('signer_role', 'equalto', 'client') | list | last) %}
+        <table class="signature-grid">
+            <tr>
+                <td>
+                    <div class="signature-label">Technician</div>
+                    {% if technician_signature %}
+                        <img class="signature-image" src="{{ technician_signature.signature_image_data }}" alt="Technician signature" />
+                        <div>{{ technician_signature.signer_name }}</div>
+                        <div class="signature-meta">{{ technician_signature.signed_at }}</div>
+                    {% else %}
+                        <div class="muted">No technician signature recorded.</div>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="signature-label">Client</div>
+                    {% if client_signature %}
+                        <img class="signature-image" src="{{ client_signature.signature_image_data }}" alt="Client signature" />
+                        <div>{{ client_signature.signer_name }}</div>
+                        <div class="signature-meta">{{ client_signature.signed_at }}</div>
+                    {% else %}
+                        <div class="muted">No client signature recorded.</div>
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>

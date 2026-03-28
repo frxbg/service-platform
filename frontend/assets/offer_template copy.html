@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="bg">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Оферта {{ offer.offer_number }}</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+            font-size: 13px;
+            color: #222;
+        }
+
+        .page-inner {
+            padding: 0 0 12mm 0;
+        }
+
+        @page {
+            size: A4;
+            margin: 15mm;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #0062b3;
+            padding-bottom: 10px;
+        }
+
+        .company-info {
+            max-width: 55%;
+        }
+
+        .company-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0062b3;
+            margin-bottom: 4px;
+        }
+
+        .company-details {
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .logo-placeholder {
+            width: 140px;
+            height: 50px;
+            border: 1px dashed #bbb;
+            text-align: center;
+            font-size: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #999;
+        }
+
+        .logo-placeholder img {
+            max-width: 120px;
+            max-height: 40px;
+            object-fit: contain;
+        }
+
+        .offer-title-block {
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .offer-main-title {
+            font-size: 20px;
+            font-weight: 700;
+            text-transform: uppercase;
+            text-align: left;
+            margin-bottom: 4px;
+        }
+
+        .offer-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .offer-meta span {
+            display: inline-block;
+            min-width: 140px;
+        }
+
+        .recipient-block {
+            margin-top: 10px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .recipient-block div {
+            margin-bottom: 3px;
+        }
+
+        .intro-text {
+            margin: 8px 0 15px;
+            line-height: 1.5;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+
+        th,
+        td {
+            border: 1px solid #d0d0d0;
+            padding: 4px 6px;
+        }
+
+        th {
+            background: #f0f4f8;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        td {
+            vertical-align: top;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .summary-row td {
+            font-weight: 600;
+            background: #fafafa;
+        }
+
+        .totals-block {
+            margin-top: 8px;
+            margin-bottom: 12px;
+            width: 50%;
+            margin-left: auto;
+            font-size: 12px;
+        }
+
+        .totals-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 3px;
+        }
+
+        .totals-row span:first-child {
+            font-weight: 600;
+        }
+
+        .terms-block {
+            font-size: 12px;
+            margin-top: 8px;
+            margin-bottom: 14px;
+            line-height: 1.4;
+        }
+
+        .terms-block div {
+            margin-bottom: 2px;
+        }
+
+        .signature-block {
+            margin-top: 20px;
+            font-size: 12px;
+        }
+
+        .signature-label {
+            margin-bottom: 30px;
+        }
+
+        .signature-name {
+            font-weight: 600;
+        }
+
+        .environment-block {
+            margin-top: 25px;
+            padding-top: 10px;
+            border-top: 1px solid #cfd8e3;
+            font-size: 11px;
+            line-height: 1.5;
+            color: #444;
+        }
+
+        .environment-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #1b5e20;
+        }
+
+        .footer-company {
+            margin-top: 10px;
+            font-size: 10px;
+            color: #555;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .footer-company a {
+            color: #0062b3;
+            text-decoration: none;
+        }
+
+        .footer-company a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page">
+        <div class="page-inner">
+            <div class="header">
+                <div class="company-info">
+                    <div class="company-name">{{ company_name }}</div>
+                    <div class="company-details">
+                        {{ company_address }}<br>
+                        тел.: {{ company_phone }}<br>
+                        e-mail: {{ company_email }}
+                    </div>
+                </div>
+                <div class="logo-placeholder">
+                    {% if logo_path %}
+                    <img src="{{ logo_path }}" alt="Logo">
+                    {% else %}
+                    Лого
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="offer-title-block">
+                <div class="offer-main-title">
+                    Оферта
+                </div>
+                <div class="offer-meta">
+                    <div>
+                        <span>№:</span> {{ offer.offer_number }}
+                    </div>
+                    <div class="text-right">
+                        <span>Дата:</span> {{ offer_date }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="recipient-block">
+                <div><strong>Към:</strong> {{ client.name }}</div>
+                {% if client_contact %}
+                <div><strong>Лице за контакт:</strong> {{ client_contact }}</div>
+                {% endif %}
+                {% if offer.project_name %}
+                <div><strong>Проект:</strong> {{ offer.project_name }}</div>
+                {% endif %}
+                {% if offer.site_address %}
+                <div><strong>Адрес на обекта:</strong> {{ offer.site_address }}</div>
+                {% endif %}
+            </div>
+
+            <div class="intro-text">
+                Уважаеми {{ client_contact_short }},<br>
+                Представяме Ви нашето ценово предложение за {{ offer_short_description }}.
+            </div>
+
+            {% if material_lines %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>№</th>
+                        <th>Описание / материали</th>
+                        <th>Ед. мярка</th>
+                        <th>Количество</th>
+                        <th>Ед. цена</th>
+                        {% if show_discount_column %}
+                        <th>Ед. цена след отстъпка</th>
+                        {% endif %}
+                        <th>Сума</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for line in material_lines %}
+                    {% set base_price = (line.price or 0)|float %}
+                    {% set discount = (line.discount_percent or 0)|float if show_discount_column else 0 %}
+                    {% set price_after_discount = base_price * (1 - (discount/100)) %}
+                    {% set line_total = price_after_discount * ((line.quantity or 0)|float) %}
+                    <tr>
+                        <td class="text-center">{{ loop.index }}</td>
+                        <td>{{ line.description }}</td>
+                        <td class="text-center">{{ line.unit or "" }}</td>
+                        <td class="text-center">{{ "%.3f"|format(line.quantity or 0) }}</td>
+                        <td class="text-right">{{ "%.2f"|format(base_price) }} {{ currency }}</td>
+                        {% if show_discount_column %}
+                        <td class="text-right">
+                            {{ "%.2f"|format(price_after_discount) }} {{ currency }}
+                            {% if discount %}<div style="font-size:10px;color:#666;">-{{ "%.2f"|format(discount) }}%
+                            </div>{% endif %}
+                        </td>
+                        {% endif %}
+                        <td class="text-right">{{ "%.2f"|format(line_total) }} {{ currency }}</td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="summary-row">
+                        <td colspan="{{ 5 + (1 if show_discount_column else 0) }}">Общо материали</td>
+                        <td class="text-right">{{ "%.2f"|format(parts_total) }} {{ currency }}</td>
+                    </tr>
+                </tbody>
+            </table>
+            {% endif %}
+
+            {% if labour_lines %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>№</th>
+                        <th>Дейност / услуги</th>
+                        <th>Ед.</th>
+                        <th>Количество</th>
+                        <th>Ед. цена</th>
+                        {% if show_discount_column %}
+                        <th>Ед. цена след отстъпка</th>
+                        {% endif %}
+                        <th>Сума</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for line in labour_lines %}
+                    {% set base_price = (line.price or 0)|float %}
+                    {% set discount = (line.discount_percent or 0)|float if show_discount_column else 0 %}
+                    {% set price_after_discount = base_price * (1 - (discount/100)) %}
+                    {% set line_total = price_after_discount * ((line.quantity or 0)|float) %}
+                    <tr>
+                        <td class="text-center">{{ loop.index }}</td>
+                        <td>{{ line.description }}</td>
+                        <td class="text-center">{{ line.unit or "" }}</td>
+                        <td class="text-center">{{ "%.3f"|format(line.quantity or 0) }}</td>
+                        <td class="text-right">{{ "%.2f"|format(base_price) }} {{ currency }}</td>
+                        {% if show_discount_column %}
+                        <td class="text-right">
+                            {{ "%.2f"|format(price_after_discount) }} {{ currency }}
+                            {% if discount %}<div style="font-size:10px;color:#666;">-{{ "%.2f"|format(discount) }}%
+                            </div>{% endif %}
+                        </td>
+                        {% endif %}
+                        <td class="text-right">{{ "%.2f"|format(line_total) }} {{ currency }}</td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="summary-row">
+                        <td colspan="{{ 5 + (1 if show_discount_column else 0) }}">Общо дейности</td>
+                        <td class="text-right">{{ "%.2f"|format(labour_total) }} {{ currency }}</td>
+                    </tr>
+                </tbody>
+            </table>
+            {% endif %}
+
+            <div class="totals-block">
+                <div class="totals-row">
+                    <span>Общо без ДДС:</span>
+                    <span>{{ "%.2f"|format(total_without_vat) }} {{ currency }}</span>
+                </div>
+                <div class="totals-row">
+                    <span>ДДС {{ vat_percent }}%:</span>
+                    <span>{{ "%.2f"|format(vat_amount) }} {{ currency }}</span>
+                </div>
+                <div class="totals-row">
+                    <span>Общо с ДДС:</span>
+                    <span>{{ "%.2f"|format(total_with_vat) }} {{ currency }}</span>
+                </div>
+                <div class="totals-row">
+                    <span>Общо в EURO:</span>
+                    <span>{{ "%.2f"|format(total_in_eur) }} €</span>
+                </div>
+                <div class="totals-row" style="font-size: 10px; color:#555;">
+                    <span>Курс:</span>
+                    <span>{{ fx_rate }} лв = 1 €</span>
+                </div>
+            </div>
+
+            <div class="terms-block">
+                <div><strong>Гаранционни условия:</strong> {{ warranty_text }}</div>
+                <div><strong>Срок на доставка:</strong> {{ delivery_term_text }}</div>
+                <div><strong>Плащане:</strong> {{ payment_terms_text }}</div>
+                <div><strong>Допълнителна информация:</strong> {{ extra_info }}</div>
+            </div>
+
+            <div class="terms-block">
+                {{ coolant_note }}
+            </div>
+
+            <div class="signature-block">
+                <div class="signature-label">
+                    Благодарим за възможността да представим нашата оферта.
+                </div>
+                <div>С уважение,</div>
+                <div class="signature-name">{{ author_name }}</div>
+                <div>{{ author_position }}</div>
+            </div>
+
+            <div class="environment-block">
+                <div class="environment-title">
+                    Отговорно отношение към околната среда
+                </div>
+                <div>
+                    {{ environment_paragraph_1 }}
+                </div>
+                <div>
+                    {{ environment_paragraph_2 }}
+                </div>
+                <div>
+                    {{ environment_paragraph_3 }}
+                </div>
+            </div>
+
+            <div class="footer-company" style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="width: 10%; text-align: left;">
+                    {% if wecare_logo_path %}
+                    <img src="{{ wecare_logo_path }}" alt="WeCare Logo"
+                        style="max-width: 80px; max-height: 40px; object-fit: contain;">
+                    {% endif %}
+                </div>
+                <div style="width: 80%; text-align: center;">
+                    <!-- {{ company_name }}<br>
+                    {{ company_footer_address }} -->
+                    {% if footer_text %}
+                    <br>{{ footer_text }}
+                    {% else %}
+                    {% if company_website %}
+                    <br>web: <a href="{{ company_website }}">{{ company_website }}</a>
+                    {% endif %}
+                    {% if company_linkedin %}
+                    <br>LinkedIn: <a href="{{ company_linkedin }}">{{ company_linkedin }}</a>
+                    {% endif %}
+                    {% endif %}
+                </div>
+                <div style="width: 10%; text-align: right;">
+                    {% if vinci_logo_path %}
+                    <img src="{{ vinci_logo_path }}" alt="Vinci Logo"
+                        style="max-width: 80px; max-height: 40px; object-fit: contain;">
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
