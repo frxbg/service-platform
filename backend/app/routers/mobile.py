@@ -42,6 +42,19 @@ def read_mobile_request_detail(
     )
 
 
+@router.get("/sites/{site_id}", response_model=schemas.mobile.MobileSiteDetail)
+def read_mobile_site_detail(
+    site_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    return MobileRequestService.get_site_detail(
+        db,
+        site_id=site_id,
+        current_user=current_user,
+    )
+
+
 @router.post("/requests/{request_id}/accept", response_model=schemas.mobile.MobileAcceptRequestResponse)
 def accept_or_self_claim_mobile_request(
     request_id: UUID,
@@ -89,6 +102,59 @@ def start_mobile_request_work(
     }
 
 
+@router.post("/requests/{request_id}/travel/start", response_model=schemas.mobile.MobileRequestMutationResponse)
+def start_mobile_request_travel(
+    request_id: UUID,
+    payload: schemas.mobile.MobileTravelStartCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    return {
+        "request": MobileRequestService.start_travel(
+            db,
+            request_id=request_id,
+            payload=payload,
+            current_user=current_user,
+        )
+    }
+
+
+@router.post("/requests/{request_id}/travel/stop", response_model=schemas.mobile.MobileRequestMutationResponse)
+def stop_mobile_request_travel(
+    request_id: UUID,
+    payload: schemas.mobile.MobileTravelStopUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    return {
+        "request": MobileRequestService.stop_travel(
+            db,
+            request_id=request_id,
+            payload=payload,
+            current_user=current_user,
+        )
+    }
+
+
+@router.patch("/requests/{request_id}/travel/{travel_log_id}", response_model=schemas.mobile.MobileRequestMutationResponse)
+def update_mobile_request_travel(
+    request_id: UUID,
+    travel_log_id: UUID,
+    payload: schemas.mobile.MobileTravelManualUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    return {
+        "request": MobileRequestService.update_travel_log(
+            db,
+            request_id=request_id,
+            travel_log_id=travel_log_id,
+            payload=payload,
+            current_user=current_user,
+        )
+    }
+
+
 @router.post("/requests/{request_id}/work-logs", response_model=schemas.mobile.MobileRequestMutationResponse)
 def create_mobile_work_log(
     request_id: UUID,
@@ -115,6 +181,23 @@ def create_mobile_material_usage(
 ) -> Any:
     return {
         "request": MobileRequestService.add_material_usage(
+            db,
+            request_id=request_id,
+            payload=payload,
+            current_user=current_user,
+        )
+    }
+
+
+@router.post("/requests/{request_id}/equipment-assets", response_model=schemas.mobile.MobileRequestMutationResponse)
+def create_mobile_equipment_asset(
+    request_id: UUID,
+    payload: schemas.mobile.MobileEquipmentCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    return {
+        "request": MobileRequestService.add_equipment_asset(
             db,
             request_id=request_id,
             payload=payload,

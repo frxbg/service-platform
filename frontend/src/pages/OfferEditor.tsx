@@ -238,7 +238,7 @@ const OfferEditor: React.FC = () => {
     const { data: clients = [] } = useQuery<ClientWithSites[]>({
         queryKey: ['clients'],
         queryFn: async () => {
-            const { data } = await api.get('/clients', { params: { limit: 1000 } });
+            const { data } = await api.get('/clients/', { params: { limit: 1000 } });
             return data;
         },
     });
@@ -246,7 +246,7 @@ const OfferEditor: React.FC = () => {
     const { data: materials = [] } = useQuery({
         queryKey: ['materials-all'],
         queryFn: async () => {
-            const { data } = await api.get('/materials', { params: { limit: 1000 } });
+            const { data } = await api.get('/materials/', { params: { limit: 1000 } });
             return data;
         },
     });
@@ -420,7 +420,7 @@ const OfferEditor: React.FC = () => {
     const saveMutation = useMutation({
         mutationFn: async (data: OfferFormValues) => {
             if (isNew) {
-                return api.post('/offers', data);
+                return api.post('/offers/', data);
             }
             return api.patch(`/offers/${id}`, data);
         },
@@ -437,7 +437,7 @@ const OfferEditor: React.FC = () => {
 
     const createClientMutation = useMutation({
         mutationFn: async (clientData: typeof newClient) => {
-            const { data } = await api.post('/clients', clientData);
+            const { data } = await api.post('/clients/', clientData);
             return data;
         },
         onSuccess: (createdClient) => {
@@ -458,7 +458,7 @@ const OfferEditor: React.FC = () => {
 
     const createMaterialMutation = useMutation({
         mutationFn: async (materialData: typeof newMaterial) => {
-            const { data } = await api.post('/materials', materialData);
+            const { data } = await api.post('/materials/', materialData);
             return data;
         },
         onSuccess: () => {
@@ -2114,7 +2114,6 @@ const OfferEditor: React.FC = () => {
 };
 
 export default OfferEditor;
-
 
 
 

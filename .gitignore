@@ -25,6 +25,8 @@ dist/
 .env
 .env.*
 !.env.example
+caddy-local-root.crt
+frontend/lint_errors.txt
 
 # Logs / temp
 *.log

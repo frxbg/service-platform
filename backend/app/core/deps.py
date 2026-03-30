@@ -2,6 +2,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from pydantic import ValidationError
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app import models, schemas
@@ -12,10 +13,30 @@ reusable_oauth2 = OAuth2PasswordBearer(
     tokenUrl="/auth/login"
 )
 
+
+ROLE_STORAGE_NORMALIZATION_SQL = """
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'userrole') THEN
+        UPDATE users
+        SET role = UPPER(role::text)::userrole
+        WHERE role::text IN ('admin', 'user', 'office', 'technician', 'custom');
+
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'role_templates') THEN
+            UPDATE role_templates
+            SET role = UPPER(role::text)::userrole
+            WHERE role::text IN ('admin', 'user', 'office', 'technician', 'custom');
+        END IF;
+    END IF;
+END $$;
+"""
+
 def get_current_user(
     db: Session = Depends(get_db),
     token: str = Depends(reusable_oauth2)
 ) -> models.User:
+    db.execute(text(ROLE_STORAGE_NORMALIZATION_SQL))
+    db.commit()
     try:
         payload = jwt.decode(
             token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM]

@@ -9,8 +9,9 @@ class UserBase(BaseModel):
     full_name: Optional[str] = None
     position: Optional[str] = None
     is_active: Optional[bool] = True
-    role: UserRole = UserRole.USER
+    role: UserRole = UserRole.TECHNICIAN
     user_code: str
+    role_template_id: Optional[UUID] = None
 
 class UserCreate(UserBase):
     password: str
@@ -24,6 +25,7 @@ class UserUpdate(BaseModel):
     is_active: Optional[bool] = None
     role: Optional[UserRole] = None
     user_code: Optional[str] = None
+    role_template_id: Optional[UUID] = None
     permissions: Optional[list[str]] = None
 
 class UserInDBBase(UserBase):

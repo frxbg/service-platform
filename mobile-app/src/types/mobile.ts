@@ -73,6 +73,10 @@ export interface MobileRequestListItem {
   current_assignment_status?: string | null;
 }
 
+export interface MobileSiteRequestListItem extends MobileRequestListItem {
+  equipment_keys: string[];
+}
+
 export interface MobileRequestDetail extends MobileRequestListItem {
   external_order_number?: string | null;
   source: 'phone' | 'email' | 'external_number' | 'onsite' | 'other';
@@ -108,6 +112,36 @@ export interface MobileRequestDetail extends MobileRequestListItem {
       full_name?: string | null;
       email: string;
     };
+  }>;
+  travel_logs: Array<{
+    id: string;
+    request_id: string;
+    started_at: string;
+    ended_at?: string | null;
+    estimated_duration_minutes?: number | null;
+    final_duration_minutes?: number | null;
+    estimated_distance_km?: number | string | null;
+    final_distance_km?: number | string | null;
+    start_latitude?: number | string | null;
+    start_longitude?: number | string | null;
+    end_latitude?: number | string | null;
+    end_longitude?: number | string | null;
+    is_gps_estimated: boolean;
+    is_active: boolean;
+    has_manual_adjustments: boolean;
+    manual_adjustment_note?: string | null;
+    technician_user: {
+      id: string;
+      full_name?: string | null;
+      email: string;
+    };
+    created_by_user: {
+      id: string;
+      full_name?: string | null;
+      email: string;
+    };
+    created_at: string;
+    updated_at: string;
   }>;
   material_usages: Array<{
     id: string;
@@ -153,6 +187,18 @@ export interface MobileWorkboardResponse {
   generated_at: string;
 }
 
+export interface MobileNotification {
+  id: string;
+  notification_type: string;
+  title: string;
+  message: string;
+  entity_type?: string | null;
+  entity_id?: string | null;
+  is_read: boolean;
+  created_at: string;
+  read_at?: string | null;
+}
+
 export interface MobileRequestMutationResponse {
   request: MobileRequestDetail;
 }
@@ -174,6 +220,21 @@ export interface MobileWarehouseOption {
   is_active: boolean;
 }
 
+export interface MobileSiteEquipmentOption {
+  equipment_key: string;
+  display_name: string;
+  equipment_type: string;
+  manufacturer?: string | null;
+  model?: string | null;
+  serial_number?: string | null;
+  asset_tag?: string | null;
+  location_note?: string | null;
+  refrigerant?: string | null;
+  notes?: string | null;
+  is_active: boolean;
+  request_count: number;
+}
+
 export interface MobileClientSite {
   id: string;
   site_code: string;
@@ -193,4 +254,18 @@ export interface MobileClient {
   phone?: string | null;
   notes?: string | null;
   sites: MobileClientSite[];
+}
+
+export interface MobileSiteDetail {
+  id: string;
+  client_id: string;
+  client_name: string;
+  site_code: string;
+  site_name?: string | null;
+  city?: string | null;
+  address?: string | null;
+  notes?: string | null;
+  equipment: MobileSiteEquipmentOption[];
+  current_requests: MobileSiteRequestListItem[];
+  completed_requests: MobileSiteRequestListItem[];
 }

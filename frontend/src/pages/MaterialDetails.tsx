@@ -24,6 +24,7 @@ import {
 
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
+import { formatBgDate, formatBgDateTime } from '../utils/dateTime';
 import { hasAnyPermission, hasPermission } from '../utils/permissions';
 
 interface MaterialOfferUsage {
@@ -294,7 +295,7 @@ const MaterialDetails: React.FC = () => {
                         <TextField
                             label="Последна синхронизация"
                             fullWidth
-                            value={material.last_synced_at ? new Date(material.last_synced_at).toLocaleString() : '-'}
+                            value={material.last_synced_at ? formatBgDateTime(material.last_synced_at) : '-'}
                             InputProps={{ readOnly: true }}
                         />
                         <FormControlLabel
@@ -360,7 +361,7 @@ const MaterialDetails: React.FC = () => {
                                         <TableCell>{usage.quantity} {usage.unit || ''}</TableCell>
                                         {canReadMaterialCommercial ? <TableCell>{usage.line_price ?? '-'}</TableCell> : null}
                                         {canReadMaterialCommercial ? <TableCell>{usage.line_cost ?? '-'}</TableCell> : null}
-                                        <TableCell>{usage.created_at ? new Date(usage.created_at).toLocaleDateString() : '-'}</TableCell>
+                                        <TableCell>{usage.created_at ? formatBgDate(usage.created_at) : '-'}</TableCell>
                                         <TableCell>
                                             <Button size="small" onClick={() => navigate(`/offers/${usage.offer_id}/view`)}>
                                                 Отвори

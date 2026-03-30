@@ -11,7 +11,7 @@ def _build_user() -> User:
     return User(
         email="visibility@example.com",
         password_hash="hash",
-        role=UserRole.USER,
+        role=UserRole.TECHNICIAN,
         user_code="VIS",
     )
 

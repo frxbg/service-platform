@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Boolean, DateTime, Enum
+from sqlalchemy import Column, String, Boolean, DateTime, Enum, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -8,7 +8,9 @@ from app.database import Base
 
 class UserRole(str, enum.Enum):
     ADMIN = "admin"
-    USER = "user"
+    OFFICE = "office"
+    TECHNICIAN = "technician"
+    CUSTOM = "custom"
 
 class User(Base):
     __tablename__ = "users"
@@ -18,11 +20,13 @@ class User(Base):
     full_name = Column(String, nullable=True)
     password_hash = Column(String, nullable=False)
     position = Column(String, nullable=True)  # Job title/position for PDF signature
-    role = Column(Enum(UserRole), nullable=False, default=UserRole.USER)
+    role = Column(Enum(UserRole), nullable=False, default=UserRole.TECHNICIAN)
+    role_template_id = Column(UUID(as_uuid=True), ForeignKey("role_templates.id"), nullable=True, index=True)
     user_code = Column(String(10), unique=True, index=True, nullable=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
+    role_template = relationship("RoleTemplate", back_populates="users")
     permission_entries = relationship(
         "UserPermission",
         foreign_keys="UserPermission.user_id",

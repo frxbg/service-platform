@@ -5,14 +5,57 @@
     "clients": "Клиенти",
     "materials": "Материали",
     "users": "Потребители",
+    "roles": "Роли",
     "settings": "Настройки",
-    "logout": "Изход"
+    "logout": "Изход",
+    "service": "Сервиз"
   },
   "auth": {
     "login": "Вход",
     "email": "Имейл",
     "password": "Парола",
-    "submit": "Вход"
+    "submit": "Вход",
+    "loginError": "Неуспешен вход",
+    "serverConnectionError": "Няма връзка със сървъра. Проверете адреса и мрежовия достъп.",
+    "forgotPassword": "Забравена парола?",
+    "loginWelcome": "Добре дошли отново",
+    "loginContinue": "Влезте в профила си, за да продължите",
+    "loginBrandHeadline": "Управление на оферти",
+    "loginBrandDescription": "Създавайте, управлявайте и изпращайте оферти по-бързо. Проследявайте статусите и генерирайте PDF документи в един поток.",
+    "passwordResetTitle": "Възстановяване на парола",
+    "passwordResetSubtitle": "Въведете имейла си и ще ви изпратим линк за възстановяване на паролата.",
+    "passwordResetSendLink": "Изпрати линк",
+    "passwordResetBackToLogin": "Назад към вход",
+    "passwordResetEmailRequired": "Имейлът е задължителен",
+    "passwordResetRequestSuccess": "Ако имейлът съществува, ще получите линк за възстановяване.",
+    "passwordResetRequestError": "Възникна грешка. Опитайте отново.",
+    "resetPasswordTitle": "Задаване на нова парола",
+    "resetPasswordSubtitle": "Въведете новата си парола.",
+    "resetPasswordNew": "Нова парола",
+    "resetPasswordConfirm": "Потвърди паролата",
+    "resetPasswordMinLength": "Минимум 6 символа",
+    "resetPasswordMismatch": "Паролите трябва да съвпадат",
+    "resetPasswordRequired": "Полето е задължително",
+    "resetPasswordSubmit": "Обнови паролата",
+    "resetPasswordSuccess": "Паролата беше обновена успешно.",
+    "resetPasswordMissingToken": "Липсва валиден токен за възстановяване на парола.",
+    "resetPasswordError": "Възникна грешка. Опитайте отново.",
+    "initialSetupTitle": "Първоначална настройка",
+    "initialSetupSubtitle": "Не бяха открити потребители. Моля, създайте първия администраторски акаунт.",
+    "initialSetupSuccessTitle": "Готово!",
+    "initialSetupSuccessSubtitle": "Първият администраторски акаунт беше създаден.",
+    "initialSetupRedirecting": "Пренасочване към страницата за вход...",
+    "initialSetupCreateAdmin": "Създай администратор",
+    "fullName": "Име и фамилия",
+    "userCode": "Потребителски код",
+    "userCodeHint": "Кратък код за номерата на офертите, например ADMIN или TST",
+    "emailRequired": "Имейлът е задължителен",
+    "fullNameRequired": "Името е задължително",
+    "userCodeRequired": "Кодът е задължителен",
+    "userCodeMin": "Минимум 2 символа",
+    "userCodeMax": "Максимум 10 символа",
+    "passwordRequired": "Паролата е задължителна",
+    "passwordMin": "Минимум 6 символа"
   },
   "offer": {
     "number": "Номер на оферта",
@@ -94,17 +137,18 @@
     "search": "Търсене...",
     "back": "Назад",
     "selectFile": "Избери файл",
-    "saving": "Запис..."
+    "saving": "Запис...",
+    "notAssigned": "Няма назначен"
   },
   "serviceRequests": {
     "billing": {
       "project": "Проект за фактуриране и сервиз",
-      "serviceTypeLabel": "Тип услуга",
-      "paymentModeLabel": "Режим на плащане",
+      "serviceTypeLabel": "Сервизен тип",
+      "paymentModeLabel": "Начин на плащане",
       "changeTitle": "Смяна на проект за фактуриране и сервиз",
       "changeReason": "Причина за промяна",
       "applyChange": "Смени проекта за фактуриране и сервиз",
-      "noProjects": "Няма добавени проекти за фактуриране и сервиз.",
+      "noProjects": "Няма активни проекти за фактуриране и сервиз за този клиент или обект. Добавете такъв от детайлите на клиента.",
       "serviceTypeValues": {
         "paid_service": "Платен сервиз",
         "warranty": "Гаранция",
@@ -119,12 +163,152 @@
         "contract": "По договор",
         "internal": "Вътрешно",
         "other": "Друго"
-      }
+      },
+      "assignLater": "Ще го избера по-късно"
     },
     "details": {
       "messages": {
+        "technicianAssigned": "Техникът е назначен.",
+        "statusUpdated": "Статусът е обновен на {{status}}.",
+        "workLogAdded": "Работният запис е добавен.",
+        "materialUsageAdded": "Материалният разход е добавен.",
+        "assignmentAccepted": "Назначението е прието.",
+        "assignmentRejected": "Назначението е отказано.",
+        "followUpCreated": "Последващата заявка е създадена.",
         "billingProjectChanged": "Проектът за фактуриране и сервиз е обновен."
-      }
+      },
+      "loading": "Зареждане...",
+      "exportPdf": "Експорт към PDF",
+      "delete": "Изтрий заявката",
+      "confirmDelete": "Сигурни ли сте, че искате да изтриете тази заявка?",
+      "lockedNotice": "Тази заявка е заключена след приключване. Само администратор може да я променя или изтрие.",
+      "back": "Назад",
+      "problem": "Проблем",
+      "responsible": "Отговорник",
+      "received": "Получена",
+      "assignments": "Назначения",
+      "accept": "Приеми",
+      "rejectReason": "Причина за отказ",
+      "reject": "Откажи",
+      "technician": "Техник",
+      "assign": "Назначи",
+      "statusSection": "Статус",
+      "apply": "Приложи",
+      "addWorkLog": "Добави работен запис",
+      "date": "Дата",
+      "from": "От",
+      "to": "До",
+      "invalidTimeRange": "Началният час трябва да е преди крайния час.",
+      "activityDescription": "Описание на дейността",
+      "addWorkLogAction": "Добави работен запис",
+      "materialUsage": "Разход на материали",
+      "material": "Материал",
+      "warehouse": "Склад",
+      "quantity": "Количество",
+      "unit": "Мярка",
+      "notes": "Бележки",
+      "addMaterialUsage": "Добави материален разход",
+      "followUpTitle": "Нова заявка от място",
+      "followUpProblem": "Нов проблем, открит на място",
+      "createFollowUp": "Създай последваща заявка",
+      "protocolPreview": "Преглед на протокола",
+      "protocolEmpty": "Прегледът на протокола ще се появи след записани данни за изпълнението.",
+      "executionDate": "Дата на изпълнение",
+      "time": "Час",
+      "technicians": "Техници",
+      "total": "Общо",
+      "work": "Труд",
+      "executionLog": "Журнал на изпълнението",
+      "noWorkLogs": "Все още няма работни записи.",
+      "materials": "Материали",
+      "fromWarehouse": "от",
+      "requestFailed": "Зареждането на заявката не бе успешно",
+      "requestNotLoaded": "Сервизната заявка не е заредена"
+    },
+    "title": "Сервизни заявки",
+    "subtitle": "Приемане, назначаване, изпълнение от техник и преглед на протокол.",
+    "newRequest": "Нова заявка",
+    "filters": {
+      "search": "Търсене",
+      "status": "Статус",
+      "priority": "Приоритет",
+      "client": "Клиент",
+      "site": "Обект",
+      "allStatuses": "Всички статуси",
+      "allPriorities": "Всички приоритети",
+      "allClients": "Всички клиенти",
+      "allSites": "Всички обекти"
+    },
+    "table": {
+      "request": "Заявка",
+      "client": "Клиент",
+      "site": "Обект",
+      "priority": "Приоритет",
+      "status": "Статус",
+      "responsible": "Отговорник",
+      "technicians": "Техници",
+      "received": "Получена"
+    },
+    "noPermission": "Текущият акаунт няма права да вижда сервизните заявки.",
+    "noResults": "Няма намерени сервизни заявки.",
+    "createDialog": {
+      "title": "Създай сервизна заявка",
+      "client": "Клиент",
+      "site": "Обект",
+      "problem": "Описание на проблема",
+      "source": "Източник",
+      "priority": "Приоритет",
+      "externalOrderNumber": "Външен номер на поръчка",
+      "reasonCode": "Код причина за заявка",
+      "receivedAt": "Получена на",
+      "responsibleUser": "Отговорник",
+      "internalNotes": "Вътрешни бележки",
+      "clientNotes": "Бележки за клиента",
+      "cancel": "Отказ",
+      "create": "Създай",
+      "createFailed": "Неуспешно създаване на сервизна заявка"
+    },
+    "createPage": {
+      "title": "Нова сервизна заявка",
+      "subtitle": "Използвайте търсими полета, за да изберете бързо правилния клиент, обект и проект за фактуриране и сервиз.",
+      "backToList": "Към заявките",
+      "searchClient": "Търси клиент",
+      "searchSite": "Търси обект",
+      "searchBillingProject": "Търси проект",
+      "searchResponsible": "Търси отговорник",
+      "summaryTitle": "Обобщение на заявката",
+      "requiredHint": "Изберете клиент и обект, след което въведете описание на проблема, за да продължите."
+    },
+    "priority": {
+      "low": "Нисък",
+      "standard": "Стандартен",
+      "high": "Висок",
+      "urgent": "Спешен"
+    },
+    "status": {
+      "NEW": "Нова",
+      "ASSIGNED": "Назначена",
+      "PENDING_ACCEPTANCE": "Чака приемане",
+      "ACCEPTED": "Приета",
+      "REJECTED_BY_TECHNICIAN": "Отказана от техник",
+      "IN_PROGRESS": "В процес",
+      "WAITING_PARTS": "Чака части",
+      "WAITING_CLIENT": "Чака клиент",
+      "COMPLETED": "Приключена",
+      "CLOSED": "Затворена",
+      "CANCELLED": "Отказана"
+    },
+    "assignmentStatus": {
+      "pending": "Чака",
+      "accepted": "Прието",
+      "rejected": "Отказано"
+    },
+    "source": {
+      "phone": "Телефон",
+      "email": "Имейл",
+      "external_number": "Външен номер",
+      "onsite": "На място",
+      "other": "Друго"
     }
   },
   "clientBillingLocalized": {
@@ -175,13 +359,67 @@
     "siteCity": "Град на обекта",
     "siteAddress": "Адрес на обекта",
     "sites": "Обекти / филиали",
+    "siteRequests": "Заявки по обекти",
+    "siteRequestsHint": "Преглед на текущите и последните сервизни заявки за всеки обект.",
+    "noSiteRequestPermission": "Текущият акаунт няма права да вижда заявките по обекти.",
+    "noSiteRequests": "Все още няма сервизни заявки за този обект.",
+    "noRecentSiteRequests": "Все още няма приключени заявки за този обект.",
+    "currentRequests": "Текущи заявки",
+    "recentRequests": "Последни заявки",
+    "currentRequestsCount": "{{count}} текущи",
+    "recentRequestsCount": "{{count}} последни",
+    "viewAllSiteRequests": "Отвори всички заявки",
+    "relatedBillingProjects": "Свързани проекти за фактуриране и сервиз",
+    "relatedBillingProjectsCount": "{{count}} проекта",
+    "equipment": "Сервизни съоръжения",
+    "siteEquipmentHint": "Следете съоръженията на този обект, редактирайте отделни записи или ги импортирайте от електронна таблица.",
+    "equipmentCount": "{{count}} съоръжения",
+    "activeEquipmentCount": "{{count}} активни",
+    "addEquipment": "Добави съоръжение",
+    "editEquipment": "Редакция на съоръжение",
+    "importEquipment": "Импорт от таблица",
+    "equipmentType": "Тип съоръжение",
+    "equipmentTypeRequired": "Типът съоръжение е задължителен",
+    "manufacturer": "Производител",
+    "model": "Модел",
+    "serialNumber": "Сериен номер",
+    "assetTag": "Инвентарен номер",
+    "locationNote": "Локация",
+    "refrigerant": "Хладилен агент",
+    "requestOrigin": "От заявка",
+    "noEquipment": "Все още няма добавени съоръжения за този обект.",
+    "noEquipmentPermission": "Текущият акаунт няма права да управлява съоръженията.",
+    "equipmentLoadFailed": "Съоръженията не можаха да бъдат заредени.",
+    "equipmentSaved": "Записът за съоръжение беше запазен успешно.",
+    "equipmentSaveFailed": "Записът за съоръжение не можа да бъде запазен.",
+    "backToClient": "Към клиента",
+    "siteNotFound": "Обектът не е намерен",
     "details": "Детайли",
     "noSites": "Няма добавени обекти",
     "selectSite": "Избери или въведи обект",
     "salutationName": "Име за обръщение",
     "addSite": "Добави обект",
     "editSite": "Редакция на обект",
-    "confirmDeleteSite": "Сигурни ли сте, че искате да изтриете този обект?"
+    "confirmDeleteSite": "!83C@=8 ;8 AB5, G5 8A:0B5 40 87B@85B5 B>78 >15:B?",
+    "projectNumberLegacy": "Стара проектна референция",
+    "projectNumberLegacyHint": "ERP проектните номера вече се управляват от Детайли на клиента > Проекти за фактуриране и сервиз. Полето остава само за съвместимост.",
+    "billingProjects": "Проекти за фактуриране и сервиз",
+    "addBillingProject": "Добави проект за фактуриране и сервиз",
+    "billingProjectsSummary": "Проекти за фактуриране и сервиз",
+    "defaultBillingProject": "Основен проект за фактуриране и сервиз",
+    "billingProjectsHint": "Използвайте проектите за фактуриране и сервиз като основна ERP, сервизна и платежна обвързаност за сервизните заявки.",
+    "noBillingProjects": "Няма добавени проекти за фактуриране и сервиз.",
+    "allSites": "Всички обекти",
+    "activeLabel": "Активен",
+    "inactiveLabel": "Неактивен",
+    "defaultLabel": "Основен",
+    "statusLabel": "Статус",
+    "projectYear": "Година",
+    "description": "Описание",
+    "regularLaborRate": "Стандартна ставка за труд",
+    "transportRate": "Транспортна ставка",
+    "validFrom": "Валиден от",
+    "validTo": "Валиден до"
   },
   "clientBilling": {
     "billingProjects": "Проекти за фактуриране и сервиз",
@@ -294,5 +532,224 @@
     "selectedRowsCount": "Избрани редове: {{selected}} / {{total}}",
     "importSummary": "Импортирани/обновени: {{imported}}, пропуснати: {{skipped}}, грешки: {{errors}}, обекти: {{sites}}",
     "rolledBack": "Импортът е спрян и промените са върнати."
+  },
+  "equipmentImport": {
+    "title": "Импорт на съоръжения",
+    "subtitle": "Импорт на съоръжения за {{site}}",
+    "subtitleFallback": "Импорт на съоръжения от CSV или Excel",
+    "optionsTitle": "Опции за импортиране",
+    "upload": "Качи CSV/XLSX",
+    "selectedFile": "Избран файл",
+    "import": "Импорт",
+    "previewTitle": "Преглед на данните",
+    "mappingTitle": "Съпоставяне на колони",
+    "noColumn": "Няма избрана колона",
+    "noFile": "Няма избран файл.",
+    "noRowsSelected": "Изберете поне един ред за импортиране.",
+    "missingRequired": "Липсват задължителни полета: {{fields}}",
+    "previewError": "Грешка при предварителния преглед",
+    "previewLoading": "Зареждане на предварителния преглед...",
+    "importError": "Грешка при импортиране",
+    "firstRowHeader": "Първият ред е заглавие",
+    "duplicateStrategyTitle": "Действие при вече съществуващо съоръжение",
+    "modeSkip": "Пропусни съвпадащите редове",
+    "modeUpsert": "Обнови съвпадащите редове",
+    "modeError": "Спри с грешка и върни всички промени",
+    "selectAll": "Избери всички",
+    "clearSelection": "Изчисти избора",
+    "selectedRowsCount": "Избрани редове: {{selected}} / {{total}}",
+    "importSummary": "Импортирани/обновени: {{imported}}, пропуснати: {{skipped}}, грешки: {{errors}}",
+    "rolledBack": "Импортът е спрян и промените са върнати.",
+    "noPermission": "Нямате права да импортирате съоръжения."
+  },
+  "layout": {
+    "settings": "Настройки",
+    "logout": "Изход",
+    "darkTheme": "Тъмна тема",
+    "lightTheme": "Светла тема"
+  },
+  "app": {
+    "brandName": "Service Platform",
+    "serverConnectionError": "Грешка при връзка със сървъра"
+  },
+  "dashboardService": {
+    "title": "Сервизно табло",
+    "subtitle": "Новите и активни сервизни заявки са основният фокус тук. Офертите остават видими като вторичен контекст.",
+    "openQueue": "Отвори опашката със заявки",
+    "newRequest": "Нова заявка",
+    "noPermission": "Текущият акаунт няма права да вижда сервизните заявки.",
+    "cards": {
+      "newRequests": "Нови заявки",
+      "activeRequests": "Активни заявки",
+      "urgentQueue": "Спешна опашка",
+      "unassigned": "Неназначени"
+    },
+    "latestTitle": "Последни сервизни заявки",
+    "latestSubtitle": "Най-новите входящи заявки и кой е назначен по тях.",
+    "table": {
+      "request": "Заявка",
+      "clientSite": "Клиент / Обект",
+      "status": "Статус",
+      "technicians": "Техници",
+      "reported": "Получена"
+    },
+    "statusOverview": "Преглед по статуси",
+    "focusTitle": "Фокус на заявките",
+    "focus": {
+      "newRequests": "Нови заявки: {{count}}",
+      "inProgress": "В процес: {{count}}",
+      "urgentQueue": "Спешна опашка: {{count}}",
+      "unassigned": "Неназначени: {{count}}"
+    },
+    "offersTitle": "Снимка на офертите",
+    "offersSubtitle": "Вторичен търговски контекст за същата работна среда.",
+    "offersTable": {
+      "offer": "Оферта",
+      "client": "Клиент",
+      "status": "Статус",
+      "value": "Стойност"
+    },
+    "openOffers": "Отвори офертите"
+  },
+  "usersPage": {
+    "title": "Потребители",
+    "newUser": "Нов потребител",
+    "openRoles": "Роли",
+    "backToUsers": "Към потребители",
+    "sections": {
+      "users": "Потребители",
+      "roles": "Роли"
+    },
+    "searchPlaceholder": "Търсене...",
+    "table": {
+      "name": "Име",
+      "email": "Имейл",
+      "code": "Код",
+      "role": "Роля",
+      "permissions": "Права",
+      "status": "Статус",
+      "actions": "Действия"
+    },
+    "loading": "Зареждане...",
+    "roles": {
+      "admin": "Администратор",
+      "office": "Офис",
+      "technician": "Техник",
+      "custom": "Персонализирана"
+    },
+    "permissions": {
+      "all": "Всички",
+      "selected": "{{count}} избрани",
+      "title": "Права",
+      "inheritedAll": "Тази роля наследява пълен достъп до платформата.",
+      "inheritedCount": "Тази роля дава {{count}} права."
+    },
+    "permissionLabels": {
+      "offers": {
+        "read_all": "Преглед на всички оферти",
+        "read_own": "Преглед на собствените оферти",
+        "edit_own": "Редакция на собствените оферти",
+        "edit_all": "Редакция на всички оферти"
+      },
+      "clients": {
+        "read": "Преглед на клиенти",
+        "manage": "Управление на клиенти"
+      },
+      "materials": {
+        "read": "Преглед на материали",
+        "read_operational": "Преглед на оперативни данни за материали",
+        "read_commercial": "Преглед на търговски данни за материали",
+        "manage": "Управление на материали"
+      },
+      "labor_rates": {
+        "read": "Преглед на ставки за труд"
+      },
+      "transport_rates": {
+        "read": "Преглед на транспортни ставки"
+      },
+      "billing_projects": {
+        "read_operational": "Преглед на оперативни данни по проекти",
+        "read_commercial": "Преглед на търговски данни по проекти"
+      },
+      "service_requests": {
+        "read_all": "Преглед на всички сервизни заявки",
+        "read_assigned": "Преглед на назначените сервизни заявки",
+        "create": "Създаване на сервизни заявки",
+        "assign": "Назначаване на сервизни заявки",
+        "accept": "Приемане на сервизни заявки",
+        "reject": "Отказ на сервизни заявки",
+        "edit": "Редакция на сервизни заявки",
+        "close": "Затваряне на сервизни заявки"
+      },
+      "work_logs": {
+        "manage": "Управление на работни отчети"
+      },
+      "material_usages": {
+        "manage": "Управление на разход на материали"
+      },
+      "warehouses": {
+        "manage": "Управление на складове"
+      },
+      "equipment": {
+        "manage": "Управление на оборудване"
+      },
+      "settings": {
+        "manage": "Управление на настройки"
+      },
+      "users": {
+        "manage": "Управление на потребители"
+      }
+    },
+    "statusValues": {
+      "active": "Активен",
+      "inactive": "Неактивен"
+    },
+    "rolesSection": {
+      "title": "Роли",
+      "subtitle": "Създавайте и редактирайте роли с подготвени permission пакети за потребителите.",
+      "newRole": "Нова роля",
+      "systemRole": "Системна роля",
+      "noDescription": "Няма описание.",
+      "empty": "Все още няма добавени роли.",
+      "permissionCount": "{{count}} права"
+    },
+    "dialog": {
+      "editTitle": "Редакция на потребител",
+      "createTitle": "Нов потребител",
+      "email": "Имейл",
+      "emailRequired": "Имейлът е задължителен",
+      "fullName": "Име",
+      "userCode": "Потребителски код",
+      "userCodeRequired": "Потребителският код е задължителен",
+      "newPasswordOptional": "Нова парола (по желание)",
+      "password": "Парола",
+      "passwordRequired": "Паролата е задължителна",
+      "assignedRole": "Зададена роля",
+      "roleRequired": "Ролята е задължителна",
+      "roleHelp": "Правата се наследяват от избраната роля.",
+      "active": "Активен",
+      "cancel": "Отказ",
+      "save": "Запази",
+      "create": "Създай",
+      "createFailed": "Неуспешно създаване на потребител",
+      "updateFailed": "Неуспешно обновяване на потребител"
+    },
+    "roleDialog": {
+      "createTitle": "Създай роля",
+      "editTitle": "Редакция на роля",
+      "code": "Код на ролята",
+      "codeRequired": "Кодът на ролята е задължителен",
+      "name": "Име на ролята",
+      "nameRequired": "Името на ролята е задължително",
+      "description": "Описание",
+      "baseRole": "Основен тип роля",
+      "active": "Активна",
+      "confirmDelete": "Сигурни ли сте, че искате да изтриете ролята „{{name}}“?",
+      "adminHasAllPermissions": "Администраторските роли винаги получават всички права.",
+      "createFailed": "Неуспешно създаване на роля",
+      "updateFailed": "Неуспешно обновяване на роля",
+      "deleteFailed": "Неуспешно изтриване на роля"
+    },
+    "noPermission": "Нямате права да управлявате потребители."
   }
 }

@@ -42,6 +42,73 @@ class PermissionCode(str, Enum):
 
 ALL_PERMISSIONS = {permission.value for permission in PermissionCode}
 
+SYSTEM_ROLE_TEMPLATE_DEFINITIONS: dict[str, dict] = {
+    "administrator": {
+        "name": "Administrator",
+        "description": "Full access across the platform, including user administration and destructive actions.",
+        "role": models.UserRole.ADMIN,
+        "permission_codes": sorted(ALL_PERMISSIONS),
+        "is_system": True,
+    },
+    "office": {
+        "name": "Office",
+        "description": "Office coordination role for intake, assignment, client data, warehouse operations, and commercial visibility.",
+        "role": models.UserRole.OFFICE,
+        "permission_codes": sorted(
+            {
+                PermissionCode.OFFERS_READ_ALL.value,
+                PermissionCode.OFFERS_EDIT_ALL.value,
+                PermissionCode.CLIENTS_READ.value,
+                PermissionCode.CLIENTS_MANAGE.value,
+                PermissionCode.MATERIALS_READ.value,
+                PermissionCode.MATERIALS_READ_OPERATIONAL.value,
+                PermissionCode.MATERIALS_READ_COMMERCIAL.value,
+                PermissionCode.MATERIALS_MANAGE.value,
+                PermissionCode.LABOR_RATES_READ.value,
+                PermissionCode.TRANSPORT_RATES_READ.value,
+                PermissionCode.BILLING_PROJECTS_READ_OPERATIONAL.value,
+                PermissionCode.BILLING_PROJECTS_READ_COMMERCIAL.value,
+                PermissionCode.SERVICE_REQUESTS_READ_ALL.value,
+                PermissionCode.SERVICE_REQUESTS_CREATE.value,
+                PermissionCode.SERVICE_REQUESTS_ASSIGN.value,
+                PermissionCode.SERVICE_REQUESTS_EDIT.value,
+                PermissionCode.SERVICE_REQUESTS_CLOSE.value,
+                PermissionCode.WORK_LOGS_MANAGE.value,
+                PermissionCode.MATERIAL_USAGES_MANAGE.value,
+                PermissionCode.WAREHOUSES_MANAGE.value,
+                PermissionCode.EQUIPMENT_MANAGE.value,
+            }
+        ),
+        "is_system": True,
+    },
+    "technician": {
+        "name": "Technician",
+        "description": "Field technician role with operational access to assigned work, materials, work logs, and equipment.",
+        "role": models.UserRole.TECHNICIAN,
+        "permission_codes": sorted(
+            {
+                PermissionCode.MATERIALS_READ_OPERATIONAL.value,
+                PermissionCode.BILLING_PROJECTS_READ_OPERATIONAL.value,
+                PermissionCode.SERVICE_REQUESTS_READ_ASSIGNED.value,
+                PermissionCode.SERVICE_REQUESTS_ACCEPT.value,
+                PermissionCode.SERVICE_REQUESTS_REJECT.value,
+                PermissionCode.SERVICE_REQUESTS_EDIT.value,
+                PermissionCode.WORK_LOGS_MANAGE.value,
+                PermissionCode.MATERIAL_USAGES_MANAGE.value,
+                PermissionCode.EQUIPMENT_MANAGE.value,
+            }
+        ),
+        "is_system": True,
+    },
+}
+
+
+def get_role_permissions(role: models.UserRole) -> list[str]:
+    for definition in SYSTEM_ROLE_TEMPLATE_DEFINITIONS.values():
+        if definition["role"] == role:
+            return list(definition["permission_codes"])
+    return []
+
 
 def resolve_permissions(db: Session, user: models.User) -> set[str]:
     if user.role == models.UserRole.ADMIN:

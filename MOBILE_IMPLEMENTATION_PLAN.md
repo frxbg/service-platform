@@ -1,12 +1,12 @@
 # Mobile App Implementation Plan
 
-This plan defines the first implementation phases for the technician mobile application inside `service-platform/`.
+This plan defines the first implementation phases for the technician mobile application inside this standalone repository.
 
 ## Placement
 
 The technician mobile application will live in:
 
-- `service-platform/mobile-app/`
+- `mobile-app/`
 
 Reason:
 

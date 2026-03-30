@@ -91,6 +91,7 @@ def read_service_request(
             db,
             current_user,
         ),
+        current_user=current_user,
     )
 
 
@@ -203,3 +204,14 @@ def update_service_request_billing_project(
         reason_for_change=payload.reason_for_change,
         current_user=current_user,
     )
+
+
+@router.delete("/{request_id}", status_code=204)
+def delete_service_request(
+    *,
+    db: Session = Depends(get_db),
+    request_id: UUID,
+    current_user: models.User = Depends(require_permissions(PermissionCode.SERVICE_REQUESTS_READ_ALL.value)),
+) -> None:
+    request = ServiceRequestService.get_visible_request(db, request_id=request_id, current_user=current_user)
+    ServiceRequestService.delete_request(db, request=request, current_user=current_user)

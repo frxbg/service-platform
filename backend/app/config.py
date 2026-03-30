@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     SMTP_FROM_EMAIL: str | None = None
     FRONTEND_BASE_URL: str | None = None
     CORS_ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
+    CORS_ALLOWED_ORIGIN_REGEX: str | None = None
 
     class Config:
         env_file = ".env"

@@ -9,7 +9,9 @@ import WorkboardPage from './pages/Workboard';
 import RequestDetailsPage from './pages/RequestDetails';
 import ClientsPage from './pages/Clients';
 import ClientDetailsPage from './pages/ClientDetails';
+import SiteDetailsPage from './pages/SiteDetails';
 import MaterialsPage from './pages/Materials';
+import NotificationsPage from './pages/Notifications';
 import ProfilePage from './pages/Profile';
 
 function FullScreenLoader() {
@@ -107,10 +109,26 @@ export default function App() {
         }
       />
       <Route
+        path="/clients/:clientId/sites/:siteId"
+        element={
+          <ProtectedRoute>
+            <SiteDetailsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/materials"
         element={
           <ProtectedRoute>
             <MaterialsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute>
+            <NotificationsPage />
           </ProtectedRoute>
         }
       />

@@ -1,21 +1,21 @@
-﻿import React, { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { Suspense, lazy } from 'react';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import { Box, CircularProgress } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
+
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { useBootstrapStatus } from './hooks/useBootstrapStatus';
-import { CircularProgress, Box } from '@mui/material';
-
-// Layout and identity pages stay eager because they are small and needed immediately.
 import Layout from './components/Layout';
 import Login from './pages/Login';
 
-// All other pages are lazy loaded.
 const Clients = lazy(() => import('./pages/Clients'));
 const Materials = lazy(() => import('./pages/Materials'));
 const MaterialDetails = lazy(() => import('./pages/MaterialDetails'));
 const ServiceRequests = lazy(() => import('./pages/ServiceRequests'));
+const ServiceRequestCreate = lazy(() => import('./pages/ServiceRequestCreate'));
 const ServiceRequestDetails = lazy(() => import('./pages/ServiceRequestDetails'));
 const Offers = lazy(() => import('./pages/Offers'));
 const OfferEditor = lazy(() => import('./pages/OfferEditor'));
@@ -29,9 +29,10 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const MaterialImport = lazy(() => import('./pages/MaterialImport'));
 const ClientImport = lazy(() => import('./pages/ClientImport'));
+const EquipmentImport = lazy(() => import('./pages/EquipmentImport'));
 const ClientDetails = lazy(() => import('./pages/ClientDetails'));
+const SiteDetails = lazy(() => import('./pages/SiteDetails'));
 
-// Query client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -41,21 +42,19 @@ const queryClient = new QueryClient({
   },
 });
 
-// Page loader spinner
 const PageLoader = () => (
   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
     <CircularProgress size={40} thickness={3} />
   </Box>
 );
 
-// Route guard
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('access_token');
   return token ? <>{children}</> : <Navigate to="/login" replace />;
 }
 
-// Core app router
 function AppContent() {
+  const { t } = useTranslation();
   const { data: bootstrapStatus, isLoading, isError } = useBootstrapStatus();
 
   if (isLoading) {
@@ -69,7 +68,7 @@ function AppContent() {
   if (isError) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-        <div>Грешка при свързване със сървъра</div>
+        <div>{t('app.serverConnectionError')}</div>
       </Box>
     );
   }
@@ -81,12 +80,10 @@ function AppContent() {
           <InitialSetupPage />
         ) : (
           <Routes>
-            {/* Public routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
 
-            {/* Protected routes with shared Layout */}
             <Route
               path="/"
               element={
@@ -97,17 +94,21 @@ function AppContent() {
             >
               <Route index element={<Dashboard />} />
               <Route path="service-requests" element={<ServiceRequests />} />
+              <Route path="service-requests/new" element={<ServiceRequestCreate />} />
               <Route path="service-requests/:id" element={<ServiceRequestDetails />} />
               <Route path="offers" element={<Offers />} />
               <Route path="offers/:id/view" element={<OfferDetails />} />
               <Route path="offers/:id" element={<OfferEditor />} />
               <Route path="clients" element={<Clients />} />
+              <Route path="clients/:clientId/sites/:siteId/equipment/import" element={<EquipmentImport />} />
+              <Route path="clients/:clientId/sites/:siteId" element={<SiteDetails />} />
               <Route path="clients/:id" element={<ClientDetails />} />
               <Route path="clients/import" element={<ClientImport />} />
               <Route path="materials" element={<Materials />} />
               <Route path="materials/import" element={<MaterialImport />} />
               <Route path="materials/:id" element={<MaterialDetails />} />
               <Route path="users" element={<Users />} />
+              <Route path="users/roles" element={<Navigate to="/users?section=roles" replace />} />
               <Route path="settings" element={<Settings />} />
               <Route path="pdf-template" element={<PdfTemplate />} />
             </Route>
@@ -118,7 +119,6 @@ function AppContent() {
   );
 }
 
-// Root
 function App() {
   return (
     <QueryClientProvider client={queryClient}>

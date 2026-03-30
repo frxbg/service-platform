@@ -10,6 +10,7 @@ from app.routers import (
     materials,
     material_usages,
     mobile,
+    notifications,
     offers,
     service_assignments,
     service_protocols,
@@ -20,11 +21,12 @@ from app.routers import (
     work_logs,
 )
 
-app = FastAPI(title="PyOffers API", version="1.0.0")
+app = FastAPI(title="Service Platform API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_allowed_origins_list,
+    allow_origin_regex=settings.CORS_ALLOWED_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -36,6 +38,7 @@ app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(clients.router, prefix="/clients", tags=["clients"])
 app.include_router(materials.router, prefix="/materials", tags=["materials"])
 app.include_router(offers.router, prefix="/offers", tags=["offers"])
+app.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
 app.include_router(settings_router.router, prefix="/settings", tags=["settings"])
 app.include_router(service_requests.router, prefix="/service-requests", tags=["service-requests"])
 app.include_router(service_assignments.router, prefix="/service-assignments", tags=["service-assignments"])
@@ -48,4 +51,4 @@ app.include_router(mobile.router, prefix="/mobile", tags=["mobile"])
 
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to PyOffers API"}
+    return {"message": "Welcome to Service Platform API"}

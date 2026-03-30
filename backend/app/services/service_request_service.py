@@ -65,8 +65,34 @@ NON_ACTIVE_REQUEST_STATUSES = {
     models.ServiceRequestStatus.CANCELLED,
 }
 
+LOCKED_REQUEST_STATUSES = {
+    models.ServiceRequestStatus.CLOSED,
+    models.ServiceRequestStatus.CANCELLED,
+}
+
 
 class ServiceRequestService:
+    @staticmethod
+    def is_request_locked(request: models.ServiceRequest) -> bool:
+        return request.status in LOCKED_REQUEST_STATUSES
+
+    @staticmethod
+    def _can_override_request_lock(current_user: models.User) -> bool:
+        return current_user.role == models.UserRole.ADMIN
+
+    @staticmethod
+    def ensure_request_editable(
+        request: models.ServiceRequest,
+        *,
+        current_user: models.User,
+        action_label: str = "modified",
+    ) -> None:
+        if ServiceRequestService.is_request_locked(request) and not ServiceRequestService._can_override_request_lock(current_user):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Closed requests can only be {action_label} by an administrator",
+            )
+
     @staticmethod
     def _base_query(db: Session):
         return (
@@ -81,6 +107,8 @@ class ServiceRequestService:
                 selectinload(models.ServiceRequest.assignments).selectinload(models.ServiceAssignment.assigned_by_user),
                 selectinload(models.ServiceRequest.work_logs).selectinload(models.WorkLog.technician_user),
                 selectinload(models.ServiceRequest.work_logs).selectinload(models.WorkLog.created_by_user),
+                selectinload(models.ServiceRequest.travel_logs).selectinload(models.ServiceTravelLog.technician_user),
+                selectinload(models.ServiceRequest.travel_logs).selectinload(models.ServiceTravelLog.created_by_user),
                 selectinload(models.ServiceRequest.material_usages).selectinload(models.MaterialUsage.material),
                 selectinload(models.ServiceRequest.material_usages).selectinload(models.MaterialUsage.warehouse),
                 selectinload(models.ServiceRequest.material_usages).selectinload(models.MaterialUsage.technician_user),
@@ -236,6 +264,7 @@ class ServiceRequestService:
             "assigned_technicians": assigned_technicians,
             "reported_at": request.reported_at,
             "created_at": request.created_at,
+            "is_locked": ServiceRequestService.is_request_locked(request),
         }
 
     @staticmethod
@@ -243,6 +272,7 @@ class ServiceRequestService:
         request: models.ServiceRequest,
         *,
         include_billing_project_commercial: bool,
+        current_user: models.User,
     ) -> dict:
         return {
             "id": request.id,
@@ -280,6 +310,10 @@ class ServiceRequestService:
             ),
             "notes_internal": request.notes_internal,
             "notes_client": request.notes_client,
+            "is_locked": ServiceRequestService.is_request_locked(request),
+            "can_edit": not ServiceRequestService.is_request_locked(request)
+            or ServiceRequestService._can_override_request_lock(current_user),
+            "can_delete": ServiceRequestService._can_override_request_lock(current_user),
             "assignments": [
                 {
                     "id": assignment.id,
@@ -314,6 +348,39 @@ class ServiceRequestService:
                     "created_at": log.created_at,
                 }
                 for log in request.work_logs
+            ],
+            "travel_logs": [
+                {
+                    "id": travel_log.id,
+                    "request_id": travel_log.request_id,
+                    "started_at": travel_log.started_at,
+                    "ended_at": travel_log.ended_at,
+                    "estimated_duration_minutes": travel_log.estimated_duration_minutes,
+                    "final_duration_minutes": travel_log.final_duration_minutes,
+                    "estimated_distance_km": travel_log.estimated_distance_km,
+                    "final_distance_km": travel_log.final_distance_km,
+                    "start_latitude": travel_log.start_latitude,
+                    "start_longitude": travel_log.start_longitude,
+                    "end_latitude": travel_log.end_latitude,
+                    "end_longitude": travel_log.end_longitude,
+                    "is_gps_estimated": travel_log.is_gps_estimated,
+                    "is_active": travel_log.ended_at is None,
+                    "has_manual_adjustments": (
+                        travel_log.manual_adjustment_note is not None
+                        or travel_log.final_duration_minutes != travel_log.estimated_duration_minutes
+                        or travel_log.final_distance_km != travel_log.estimated_distance_km
+                    ),
+                    "manual_adjustment_note": travel_log.manual_adjustment_note,
+                    "technician_user": ServiceRequestService._serialize_reference_user(travel_log.technician_user),
+                    "created_by_user": ServiceRequestService._serialize_reference_user(travel_log.created_by_user),
+                    "created_at": travel_log.created_at,
+                    "updated_at": travel_log.updated_at,
+                }
+                for travel_log in sorted(
+                    request.travel_logs,
+                    key=lambda item: (item.started_at or datetime.min, item.created_at or datetime.min),
+                    reverse=True,
+                )
             ],
             "material_usages": [
                 {
@@ -532,12 +599,14 @@ class ServiceRequestService:
             db,
             payload.responsible_user_id or current_user.id,
         )
-        billing_project = ServiceRequestService._get_billing_project_or_400(
-            db,
-            billing_project_id=payload.billing_project_id,
-            client_id=payload.client_id,
-            site_id=payload.site_id,
-        )
+        billing_project = None
+        if payload.billing_project_id:
+            billing_project = ServiceRequestService._get_billing_project_or_400(
+                db,
+                billing_project_id=payload.billing_project_id,
+                client_id=payload.client_id,
+                site_id=payload.site_id,
+            )
 
         if payload.discovered_during_request_id:
             parent_request = db.query(models.ServiceRequest).filter(
@@ -552,7 +621,7 @@ class ServiceRequestService:
             source=payload.source,
             client_id=payload.client_id,
             site_id=payload.site_id,
-            billing_project_id=billing_project.id,
+            billing_project_id=billing_project.id if billing_project else None,
             responsible_user_id=responsible_user.id,
             created_by_user_id=current_user.id,
             reported_problem=payload.reported_problem,
@@ -562,9 +631,9 @@ class ServiceRequestService:
             status=models.ServiceRequestStatus.NEW,
             reported_at=payload.reported_at,
             discovered_during_request_id=payload.discovered_during_request_id,
-            project_reference_snapshot=billing_project.project_reference,
-            service_type_snapshot=billing_project.service_type,
-            payment_mode_snapshot=billing_project.payment_mode,
+            project_reference_snapshot=billing_project.project_reference if billing_project else None,
+            service_type_snapshot=billing_project.service_type if billing_project else None,
+            payment_mode_snapshot=billing_project.payment_mode if billing_project else None,
             notes_internal=payload.notes_internal,
             notes_client=payload.notes_client,
         )
@@ -579,10 +648,10 @@ class ServiceRequestService:
             details={
                 "client_id": str(payload.client_id),
                 "site_id": str(payload.site_id),
-                "billing_project_id": str(billing_project.id),
-                "project_reference_snapshot": billing_project.project_reference,
-                "service_type_snapshot": billing_project.service_type.value,
-                "payment_mode_snapshot": billing_project.payment_mode.value,
+                "billing_project_id": str(billing_project.id) if billing_project else None,
+                "project_reference_snapshot": billing_project.project_reference if billing_project else None,
+                "service_type_snapshot": billing_project.service_type.value if billing_project else None,
+                "payment_mode_snapshot": billing_project.payment_mode.value if billing_project else None,
             },
         )
         db.commit()
@@ -592,6 +661,7 @@ class ServiceRequestService:
                 db,
                 current_user,
             ),
+            current_user=current_user,
         )
 
     @staticmethod
@@ -602,8 +672,7 @@ class ServiceRequestService:
         assignments_in: list[schemas.service_request.ServiceAssignmentCreate],
         current_user: models.User,
     ) -> dict:
-        if request.status in {models.ServiceRequestStatus.CLOSED, models.ServiceRequestStatus.CANCELLED}:
-            raise HTTPException(status_code=400, detail="Closed or cancelled requests cannot be assigned")
+        ServiceRequestService.ensure_request_editable(request, current_user=current_user, action_label="modified")
         if not assignments_in:
             raise HTTPException(status_code=400, detail="At least one technician assignment is required")
 
@@ -629,6 +698,19 @@ class ServiceRequestService:
                     is_primary=item.is_primary,
                 )
             )
+            db.add(
+                models.UserNotification(
+                    user_id=item.technician_user_id,
+                    notification_type="service_request_assigned",
+                    title=f"New request assigned: {request.request_number}",
+                    message=(
+                        f"You have been assigned to {request.request_number} "
+                        f"for {request.client.name} / {request.site.site_name or request.site.site_code}."
+                    ),
+                    entity_type="service_request",
+                    entity_id=request.id,
+                )
+            )
 
         request.status = models.ServiceRequestStatus.PENDING_ACCEPTANCE
         db.add(request)
@@ -647,6 +729,7 @@ class ServiceRequestService:
                 db,
                 current_user,
             ),
+            current_user=current_user,
         )
 
     @staticmethod
@@ -669,6 +752,11 @@ class ServiceRequestService:
     @staticmethod
     def accept_assignment(db: Session, *, assignment_id: UUID, current_user: models.User) -> dict:
         assignment = ServiceRequestService._get_assignment(db, assignment_id)
+        ServiceRequestService.ensure_request_editable(
+            assignment.request,
+            current_user=current_user,
+            action_label="modified",
+        )
         if assignment.technician_user_id != current_user.id:
             raise HTTPException(status_code=403, detail="Only the assigned technician can accept this request")
         if assignment.assignment_status == models.ServiceAssignmentStatus.ACCEPTED:
@@ -695,6 +783,7 @@ class ServiceRequestService:
                 db,
                 current_user,
             ),
+            current_user=current_user,
         )
 
     @staticmethod
@@ -706,6 +795,11 @@ class ServiceRequestService:
         reject_reason: Optional[str],
     ) -> dict:
         assignment = ServiceRequestService._get_assignment(db, assignment_id)
+        ServiceRequestService.ensure_request_editable(
+            assignment.request,
+            current_user=current_user,
+            action_label="modified",
+        )
         if assignment.technician_user_id != current_user.id:
             raise HTTPException(status_code=403, detail="Only the assigned technician can reject this request")
         if not reject_reason:
@@ -742,6 +836,7 @@ class ServiceRequestService:
                 db,
                 current_user,
             ),
+            current_user=current_user,
         )
 
     @staticmethod
@@ -752,6 +847,7 @@ class ServiceRequestService:
         target_status: models.ServiceRequestStatus,
         current_user: models.User,
     ) -> dict:
+        ServiceRequestService.ensure_request_editable(request, current_user=current_user, action_label="modified")
         allowed_targets = ALLOWED_STATUS_TRANSITIONS.get(request.status, set())
         if target_status not in allowed_targets:
             raise HTTPException(
@@ -775,6 +871,7 @@ class ServiceRequestService:
                 db,
                 current_user,
             ),
+            current_user=current_user,
         )
 
     @staticmethod
@@ -786,6 +883,7 @@ class ServiceRequestService:
         reason_for_change: str,
         current_user: models.User,
     ) -> dict:
+        ServiceRequestService.ensure_request_editable(request, current_user=current_user, action_label="modified")
         if not reason_for_change.strip():
             raise HTTPException(status_code=400, detail="Reason for billing project change is required")
 
@@ -836,6 +934,7 @@ class ServiceRequestService:
                 db,
                 current_user,
             ),
+            current_user=current_user,
         )
 
     @staticmethod
@@ -876,6 +975,7 @@ class ServiceRequestService:
         current_user: models.User,
     ) -> dict:
         request = ServiceRequestService.get_visible_request(db, request_id=payload.request_id, current_user=current_user)
+        ServiceRequestService.ensure_request_editable(request, current_user=current_user, action_label="modified")
         technician_user_id = payload.technician_user_id or current_user.id
 
         if technician_user_id != current_user.id and not has_permissions(
@@ -939,6 +1039,7 @@ class ServiceRequestService:
                 db,
                 current_user,
             ),
+            current_user=current_user,
         )
 
     @staticmethod
@@ -949,6 +1050,7 @@ class ServiceRequestService:
         current_user: models.User,
     ) -> dict:
         request = ServiceRequestService.get_visible_request(db, request_id=payload.request_id, current_user=current_user)
+        ServiceRequestService.ensure_request_editable(request, current_user=current_user, action_label="modified")
         material = db.query(models.Material).filter(models.Material.id == payload.material_id).first()
         if not material:
             raise HTTPException(status_code=400, detail="Selected material does not exist")
@@ -987,6 +1089,7 @@ class ServiceRequestService:
                 db,
                 current_user,
             ),
+            current_user=current_user,
         )
 
     @staticmethod
@@ -1002,6 +1105,7 @@ class ServiceRequestService:
         client_id = payload.client_id
         site_id = payload.site_id
         request = ServiceRequestService.get_visible_request(db, request_id=payload.request_id, current_user=current_user)
+        ServiceRequestService.ensure_request_editable(request, current_user=current_user, action_label="modified")
         client_id = request.client.id
         site_id = request.site.id
 
@@ -1040,6 +1144,7 @@ class ServiceRequestService:
                 db,
                 current_user,
             ),
+            current_user=current_user,
         )
 
     @staticmethod
@@ -1051,3 +1156,25 @@ class ServiceRequestService:
     ) -> dict:
         request = ServiceRequestService.get_visible_request(db, request_id=request_id, current_user=current_user)
         return ServiceProtocolService.build_preview(request)
+
+    @staticmethod
+    def delete_request(
+        db: Session,
+        *,
+        request: models.ServiceRequest,
+        current_user: models.User,
+    ) -> None:
+        if current_user.role != models.UserRole.ADMIN:
+            raise HTTPException(status_code=403, detail="Only administrators can delete service requests")
+
+        request_id = str(request.id)
+        db.delete(request)
+        AuditService.log_event(
+            db,
+            action="service_request.deleted",
+            entity_type="service_request",
+            entity_id=request_id,
+            actor_user_id=current_user.id,
+            details={"request_number": request.request_number},
+        )
+        db.commit()

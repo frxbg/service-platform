@@ -23,6 +23,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
 import PeopleIcon from '@mui/icons-material/People';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
+import NotificationsIcon from '@mui/icons-material/Notifications';
 import PersonIcon from '@mui/icons-material/Person';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -30,7 +31,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
-import type { MobileWorkboardResponse } from '../types/mobile';
+import type { MobileNotification, MobileWorkboardResponse } from '../types/mobile';
 
 interface MobileLayoutProps {
   title: string;
@@ -62,6 +63,18 @@ export default function MobileLayout({ title, children, showBack = false }: Mobi
     return items.filter((item) => !['CLOSED', 'CANCELLED'].includes(item.status)).length;
   }, [workboardQuery.data]);
 
+  const notificationsQuery = useQuery({
+    queryKey: ['mobile-notifications-unread'],
+    queryFn: async () => {
+      const { data } = await api.get<MobileNotification[]>('/notifications', {
+        params: { unread_only: true, limit: 99 },
+      });
+      return data;
+    },
+  });
+
+  const unreadNotificationCount = notificationsQuery.data?.length || 0;
+
   const navigationItems = [
     {
       key: 'requests',
@@ -88,6 +101,16 @@ export default function MobileLayout({ title, children, showBack = false }: Mobi
       label: t('navigation.materials'),
       icon: <Inventory2Icon />,
       path: '/materials',
+    },
+    {
+      key: 'notifications',
+      label: t('navigation.notifications'),
+      icon: (
+        <Badge badgeContent={unreadNotificationCount} color="error">
+          <NotificationsIcon />
+        </Badge>
+      ),
+      path: '/notifications',
     },
     {
       key: 'profile',
@@ -127,7 +150,7 @@ export default function MobileLayout({ title, children, showBack = false }: Mobi
                 fontSize: '0.9rem',
               }}
             >
-              SP
+              {t('app.shortBrand')}
             </Avatar>
           )}
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
@@ -162,7 +185,7 @@ export default function MobileLayout({ title, children, showBack = false }: Mobi
       <Drawer anchor="left" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
         <Box sx={{ width: 290, p: 2 }}>
           <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
-            <Avatar sx={{ bgcolor: '#0f766e', width: 44, height: 44, fontWeight: 800 }}>SP</Avatar>
+            <Avatar sx={{ bgcolor: '#0f766e', width: 44, height: 44, fontWeight: 800 }}>{t('app.shortBrand')}</Avatar>
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
                 {t('app.brand')}

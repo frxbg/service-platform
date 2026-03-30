@@ -21,9 +21,8 @@ import {
     TableHead,
     TableRow,
     TextField,
-    Typography,
-} from '@mui/material';
-import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
+    Typography } from '@mui/material';
+import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
@@ -125,8 +124,7 @@ const ClientDetails: React.FC = () => {
         city: '',
         address: '',
         project_number: '',
-        notes: '',
-    });
+        notes: '' });
     const [billingProjectForm, setBillingProjectForm] = useState<BillingProjectFormValues>({
         site_id: '',
         project_reference: '',
@@ -140,8 +138,7 @@ const ClientDetails: React.FC = () => {
         valid_to: '',
         is_default: false,
         is_active: true,
-        notes: '',
-    });
+        notes: '' });
 
     const { data: client, isLoading } = useQuery<Client>({
         queryKey: ['client', id],
@@ -149,8 +146,7 @@ const ClientDetails: React.FC = () => {
         queryFn: async () => {
             const { data } = await api.get(`/clients/${id}`);
             return data;
-        },
-    });
+        } });
 
     const upsertSiteMutation = useMutation({
         mutationFn: async () => {
@@ -174,10 +170,8 @@ const ClientDetails: React.FC = () => {
                 city: '',
                 address: '',
                 project_number: '',
-                notes: '',
-            });
-        },
-    });
+                notes: '' });
+        } });
 
     const deleteSiteMutation = useMutation({
         mutationFn: async (siteId: string) => {
@@ -187,8 +181,7 @@ const ClientDetails: React.FC = () => {
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: ['client', id] });
             await queryClient.invalidateQueries({ queryKey: ['clients'] });
-        },
-    });
+        } });
 
     const upsertBillingProjectMutation = useMutation({
         mutationFn: async () => {
@@ -200,8 +193,7 @@ const ClientDetails: React.FC = () => {
                 regular_labor_rate: billingProjectForm.regular_labor_rate || null,
                 transport_rate: billingProjectForm.transport_rate || null,
                 valid_from: billingProjectForm.valid_from || null,
-                valid_to: billingProjectForm.valid_to || null,
-            };
+                valid_to: billingProjectForm.valid_to || null };
             if (editingBillingProject) {
                 const { client_id: _clientId, ...updatePayload } = payload;
                 const { data } = await api.patch(`/clients/${id}/billing-projects/${editingBillingProject.id}`, updatePayload);
@@ -228,10 +220,8 @@ const ClientDetails: React.FC = () => {
                 valid_to: '',
                 is_default: false,
                 is_active: true,
-                notes: '',
-            });
-        },
-    });
+                notes: '' });
+        } });
 
     const handleOpenNewSite = () => {
         setEditingSite(null);
@@ -241,8 +231,7 @@ const ClientDetails: React.FC = () => {
             city: '',
             address: '',
             project_number: '',
-            notes: '',
-        });
+            notes: '' });
         setSiteDialogOpen(true);
     };
 
@@ -254,8 +243,7 @@ const ClientDetails: React.FC = () => {
             city: site.city || '',
             address: site.address || '',
             project_number: site.project_number || '',
-            notes: site.notes || '',
-        });
+            notes: site.notes || '' });
         setSiteDialogOpen(true);
     };
 
@@ -274,8 +262,7 @@ const ClientDetails: React.FC = () => {
             valid_to: '',
             is_default: false,
             is_active: true,
-            notes: '',
-        });
+            notes: '' });
         setBillingDialogOpen(true);
     };
 
@@ -294,14 +281,13 @@ const ClientDetails: React.FC = () => {
             valid_to: project.valid_to || '',
             is_default: project.is_default,
             is_active: project.is_active,
-            notes: project.notes || '',
-        });
+            notes: project.notes || '' });
         setBillingDialogOpen(true);
     };
 
     const handleDeleteSite = async (site: ClientSite) => {
         const confirmed = window.confirm(
-            t('client.confirmDeleteSite', { defaultValue: 'Сигурни ли сте, че искате да изтриете този обект?' }),
+            t('client.confirmDeleteSite'),
         );
         if (!confirmed) return;
         await deleteSiteMutation.mutateAsync(site.id);
@@ -337,19 +323,19 @@ const ClientDetails: React.FC = () => {
                     <Grid container spacing={2}>
                         <Grid size={{ xs: 12, md: 4 }}>
                             <Typography variant="subtitle2">
-                                {t('clientBillingLocalized.billingProjectsSummary', { defaultValue: 'Проекти за фактуриране и сервиз' })}
+                                {t('clientBillingLocalized.billingProjectsSummary')}
                             </Typography>
                             <Typography>{`${activeBillingProjects.length}/${billingProjects.length}`}</Typography>
                         </Grid>
                         <Grid size={{ xs: 12, md: 4 }}>
                             <Typography variant="subtitle2">
-                                {t('clientBillingLocalized.defaultBillingProject', { defaultValue: 'Основен проект за фактуриране и сервиз' })}
+                                {t('clientBillingLocalized.defaultBillingProject')}
                             </Typography>
                             <Typography>{defaultBillingProject?.project_reference || '-'}</Typography>
                         </Grid>
                         <Grid size={{ xs: 12, md: 4 }}>
                             <Typography variant="subtitle2">
-                                {t('clientBillingLocalized.projectNumberLegacy', { defaultValue: 'Стара проектна референция' })}
+                                {t('clientBillingLocalized.projectNumberLegacy')}
                             </Typography>
                             <Typography>{client.project_number || '-'}</Typography>
                         </Grid>
@@ -359,7 +345,7 @@ const ClientDetails: React.FC = () => {
                         </Grid>
                         <Grid size={{ xs: 12, md: 4 }}>
                             <Typography variant="subtitle2">
-                                {t('client.salutationName', { defaultValue: 'Име за обръщение' })}
+                                {t('client.salutationName')}
                             </Typography>
                             <Typography>{client.salutation_name || '-'}</Typography>
                         </Grid>
@@ -396,7 +382,7 @@ const ClientDetails: React.FC = () => {
                     <Typography variant="h6">{t('client.sites')}</Typography>
                     {canManageClients ? (
                         <Button variant="outlined" size="small" startIcon={<AddIcon />} onClick={handleOpenNewSite}>
-                            {t('client.addSite', { defaultValue: 'Добави обект' })}
+                            {t('client.addSite')}
                         </Button>
                     ) : null}
                 </Box>
@@ -408,28 +394,47 @@ const ClientDetails: React.FC = () => {
                                 <TableCell>{t('client.siteName')}</TableCell>
                                 <TableCell>{t('client.siteCity')}</TableCell>
                                 <TableCell>{t('client.siteAddress')}</TableCell>
-                                <TableCell>{t('clientBillingLocalized.projectNumberLegacy', { defaultValue: 'Стара проектна референция' })}</TableCell>
-                                {canManageClients ? <TableCell>{t('client.actions', { defaultValue: 'Действия' })}</TableCell> : null}
+                                <TableCell>{t('clientBillingLocalized.projectNumberLegacy')}</TableCell>
+                                <TableCell>{t('client.actions')}</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
                             {client.sites.map((site) => (
-                                <TableRow key={site.id}>
-                                    <TableCell>{site.site_code}</TableCell>
-                                    <TableCell>{site.site_name}</TableCell>
+                                <TableRow
+                                    key={site.id}
+                                    hover
+                                    sx={{ cursor: 'pointer' }}
+                                    onClick={() => navigate(`/clients/${client.id}/sites/${site.id}`)}
+                                >
+                                    <TableCell>
+                                        <Button
+                                            variant="text"
+                                            size="small"
+                                            sx={{ px: 0, minWidth: 0, justifyContent: 'flex-start' }}
+                                            onClick={() => navigate(`/clients/${client.id}/sites/${site.id}`)}
+                                        >
+                                            {site.site_code}
+                                        </Button>
+                                    </TableCell>
+                                    <TableCell>{site.site_name || '-'}</TableCell>
                                     <TableCell>{site.city}</TableCell>
                                     <TableCell>{site.address}</TableCell>
                                     <TableCell>{site.project_number}</TableCell>
-                                    {canManageClients ? (
-                                        <TableCell>
+                                    <TableCell onClick={(event) => event.stopPropagation()}>
+                                        <IconButton size="small" onClick={() => navigate(`/clients/${client.id}/sites/${site.id}`)}>
+                                            <VisibilityIcon fontSize="small" />
+                                        </IconButton>
+                                        {canManageClients ? (
                                             <IconButton size="small" onClick={() => handleOpenEditSite(site)}>
                                                 <EditIcon fontSize="small" />
                                             </IconButton>
-                                            <IconButton size="small" onClick={() => handleDeleteSite(site)}>
+                                        ) : null}
+                                        {canManageClients ? (
+                                            <IconButton size="small" color="error" onClick={() => handleDeleteSite(site)}>
                                                 <DeleteIcon fontSize="small" />
                                             </IconButton>
-                                        </TableCell>
-                                    ) : null}
+                                        ) : null}
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -443,28 +448,26 @@ const ClientDetails: React.FC = () => {
 
             <Paper sx={{ p: 2 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <Typography variant="h6">{t('clientBillingLocalized.billingProjects', { defaultValue: 'Проекти за фактуриране и сервиз' })}</Typography>
+                    <Typography variant="h6">{t('clientBillingLocalized.billingProjects')}</Typography>
                     {canManageClients ? (
                         <Button variant="outlined" size="small" startIcon={<AddIcon />} onClick={handleOpenNewBillingProject}>
-                            {t('clientBillingLocalized.addBillingProject', { defaultValue: 'Добави проект за фактуриране и сервиз' })}
+                            {t('clientBillingLocalized.addBillingProject')}
                         </Button>
                     ) : null}
                 </Box>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    {t('clientBillingLocalized.billingProjectsHint', {
-                        defaultValue: 'Използвайте проектите за фактуриране и сервиз като основна ERP, сервизна и платежна обвързаност за сервизните заявки. Старите полета остават видими само за съвместимост.',
-                    })}
+                    {t('clientBillingLocalized.billingProjectsHint')}
                 </Typography>
                 {client.billing_projects && client.billing_projects.length > 0 ? (
                     <Table size="small">
                         <TableHead>
                             <TableRow>
                                 <TableCell>{t('client.siteName')}</TableCell>
-                                <TableCell>{t('client.projectNumber', { defaultValue: 'ERP проект' })}</TableCell>
-                                <TableCell>{t('serviceRequests.billing.serviceTypeLabel', { defaultValue: 'Тип услуга' })}</TableCell>
-                                <TableCell>{t('serviceRequests.billing.paymentModeLabel', { defaultValue: 'Режим на плащане' })}</TableCell>
-                                <TableCell>{t('client.statusLabel', { defaultValue: 'Статус' })}</TableCell>
-                                {canManageClients ? <TableCell>{t('client.actions', { defaultValue: 'Действия' })}</TableCell> : null}
+                                <TableCell>{t('client.projectNumber')}</TableCell>
+                                <TableCell>{t('serviceRequests.billing.serviceTypeLabel')}</TableCell>
+                                <TableCell>{t('serviceRequests.billing.paymentModeLabel')}</TableCell>
+                                <TableCell>{t('client.statusLabel')}</TableCell>
+                                {canManageClients ? <TableCell>{t('client.actions')}</TableCell> : null}
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -473,16 +476,16 @@ const ClientDetails: React.FC = () => {
                                     <TableCell>
                                         {client.sites?.find((site) => site.id === project.site_id)?.site_name ||
                                             client.sites?.find((site) => site.id === project.site_id)?.site_code ||
-                                            t('clientBillingLocalized.allSites', { defaultValue: 'Всички обекти' })}
+                                            t('clientBillingLocalized.allSites')}
                                     </TableCell>
                                     <TableCell>{project.project_reference}</TableCell>
                                     <TableCell>{getBillingServiceTypeLabel(t, project.service_type)}</TableCell>
                                     <TableCell>{getBillingPaymentModeLabel(t, project.payment_mode)}</TableCell>
                                     <TableCell>
                                         {project.is_active
-                                            ? t('clientBillingLocalized.activeLabel', { defaultValue: 'Активен' })
-                                            : t('clientBillingLocalized.inactiveLabel', { defaultValue: 'Неактивен' })}
-                                        {project.is_default ? ` / ${t('clientBillingLocalized.defaultLabel', { defaultValue: 'Основен' })}` : ''}
+                                            ? t('clientBillingLocalized.activeLabel')
+                                            : t('clientBillingLocalized.inactiveLabel')}
+                                        {project.is_default ? ` / ${t('clientBillingLocalized.defaultLabel')}` : ''}
                                     </TableCell>
                                     {canManageClients ? (
                                         <TableCell>
@@ -497,7 +500,7 @@ const ClientDetails: React.FC = () => {
                     </Table>
                 ) : (
                     <Typography variant="body2" color="text.secondary">
-                        {t('clientBillingLocalized.noBillingProjects', { defaultValue: 'Няма добавени проекти за фактуриране и сервиз.' })}
+                        {t('clientBillingLocalized.noBillingProjects')}
                     </Typography>
                 )}
             </Paper>
@@ -505,8 +508,8 @@ const ClientDetails: React.FC = () => {
             <Dialog open={siteDialogOpen} onClose={() => setSiteDialogOpen(false)} fullWidth maxWidth="sm">
                 <DialogTitle>
                     {editingSite
-                        ? t('client.editSite', { defaultValue: 'Редакция на обект' })
-                        : t('client.addSite', { defaultValue: 'Добави обект' })}
+                        ? t('client.editSite')
+                        : t('client.addSite')}
                 </DialogTitle>
                 <DialogContent>
                     <TextField
@@ -570,15 +573,15 @@ const ClientDetails: React.FC = () => {
             <Dialog open={billingDialogOpen} onClose={() => setBillingDialogOpen(false)} fullWidth maxWidth="md">
                 <DialogTitle>
                     {editingBillingProject
-                        ? t('clientBillingLocalized.editBillingProject', { defaultValue: 'Редакция на проект за фактуриране и сервиз' })
-                        : t('clientBillingLocalized.addBillingProject', { defaultValue: 'Добави проект за фактуриране и сервиз' })}
+                        ? t('clientBillingLocalized.editBillingProject')
+                        : t('clientBillingLocalized.addBillingProject')}
                 </DialogTitle>
                 <DialogContent>
                     <TextField
                         margin="dense"
                         fullWidth
                         required
-                        label={t('client.projectNumber', { defaultValue: 'ERP проект' })}
+                        label={t('client.projectNumber')}
                         value={billingProjectForm.project_reference}
                         onChange={(e) => setBillingProjectForm((prev) => ({ ...prev, project_reference: e.target.value }))}
                     />
@@ -586,7 +589,7 @@ const ClientDetails: React.FC = () => {
                         <TextField
                             margin="dense"
                             fullWidth
-                            label={t('client.projectYear', { defaultValue: 'Година' })}
+                            label={t('client.projectYear')}
                             value={billingProjectForm.project_year || ''}
                             onChange={(e) => setBillingProjectForm((prev) => ({ ...prev, project_year: e.target.value }))}
                         />
@@ -598,7 +601,7 @@ const ClientDetails: React.FC = () => {
                             value={billingProjectForm.site_id || ''}
                             onChange={(e) => setBillingProjectForm((prev) => ({ ...prev, site_id: e.target.value }))}
                         >
-                            <MenuItem value="">{t('clientBillingLocalized.allSites', { defaultValue: 'Всички обекти' })}</MenuItem>
+                            <MenuItem value="">{t('clientBillingLocalized.allSites')}</MenuItem>
                             {(client.sites || []).map((site) => (
                                 <MenuItem key={site.id} value={site.id}>
                                     {site.site_code} {site.site_name ? `- ${site.site_name}` : ''}
@@ -611,7 +614,7 @@ const ClientDetails: React.FC = () => {
                             select
                             margin="dense"
                             fullWidth
-                            label={t('serviceRequests.billing.serviceTypeLabel', { defaultValue: 'Тип услуга' })}
+                            label={t('serviceRequests.billing.serviceTypeLabel')}
                             value={billingProjectForm.service_type}
                             onChange={(e) => setBillingProjectForm((prev) => ({ ...prev, service_type: e.target.value as ClientBillingProject['service_type'] }))}
                         >
@@ -625,7 +628,7 @@ const ClientDetails: React.FC = () => {
                             select
                             margin="dense"
                             fullWidth
-                            label={t('serviceRequests.billing.paymentModeLabel', { defaultValue: 'Режим на плащане' })}
+                            label={t('serviceRequests.billing.paymentModeLabel')}
                             value={billingProjectForm.payment_mode}
                             onChange={(e) => setBillingProjectForm((prev) => ({ ...prev, payment_mode: e.target.value as ClientBillingProject['payment_mode'] }))}
                         >
@@ -639,7 +642,7 @@ const ClientDetails: React.FC = () => {
                     <TextField
                         margin="dense"
                         fullWidth
-                        label={t('client.description', { defaultValue: 'Описание' })}
+                        label={t('client.description')}
                         value={billingProjectForm.description || ''}
                         onChange={(e) => setBillingProjectForm((prev) => ({ ...prev, description: e.target.value }))}
                     />
@@ -648,14 +651,14 @@ const ClientDetails: React.FC = () => {
                             <TextField
                                 margin="dense"
                                 fullWidth
-                                label={t('client.regularLaborRate', { defaultValue: 'Стандартна ставка труд' })}
+                                label={t('client.regularLaborRate')}
                                 value={billingProjectForm.regular_labor_rate || ''}
                                 onChange={(e) => setBillingProjectForm((prev) => ({ ...prev, regular_labor_rate: e.target.value }))}
                             />
                             <TextField
                                 margin="dense"
                                 fullWidth
-                                label={t('client.transportRate', { defaultValue: 'Транспортна ставка' })}
+                                label={t('client.transportRate')}
                                 value={billingProjectForm.transport_rate || ''}
                                 onChange={(e) => setBillingProjectForm((prev) => ({ ...prev, transport_rate: e.target.value }))}
                             />
@@ -667,7 +670,7 @@ const ClientDetails: React.FC = () => {
                             type="date"
                             fullWidth
                             InputLabelProps={{ shrink: true }}
-                            label={t('client.validFrom', { defaultValue: 'Валиден от' })}
+                            label={t('client.validFrom')}
                             value={billingProjectForm.valid_from || ''}
                             onChange={(e) => setBillingProjectForm((prev) => ({ ...prev, valid_from: e.target.value }))}
                         />
@@ -676,7 +679,7 @@ const ClientDetails: React.FC = () => {
                             type="date"
                             fullWidth
                             InputLabelProps={{ shrink: true }}
-                            label={t('client.validTo', { defaultValue: 'Валиден до' })}
+                            label={t('client.validTo')}
                             value={billingProjectForm.valid_to || ''}
                             onChange={(e) => setBillingProjectForm((prev) => ({ ...prev, valid_to: e.target.value }))}
                         />
@@ -686,7 +689,7 @@ const ClientDetails: React.FC = () => {
                             variant={billingProjectForm.is_default ? 'contained' : 'outlined'}
                             onClick={() => setBillingProjectForm((prev) => ({ ...prev, is_default: !prev.is_default }))}
                         >
-                            {t('clientBillingLocalized.defaultLabel', { defaultValue: 'Основен' })}
+                            {t('clientBillingLocalized.defaultLabel')}
                         </Button>
                         <Button
                             variant={billingProjectForm.is_active ? 'contained' : 'outlined'}
@@ -694,8 +697,8 @@ const ClientDetails: React.FC = () => {
                             onClick={() => setBillingProjectForm((prev) => ({ ...prev, is_active: !prev.is_active }))}
                         >
                             {billingProjectForm.is_active
-                                ? t('clientBillingLocalized.activeLabel', { defaultValue: 'Активен' })
-                                : t('clientBillingLocalized.inactiveLabel', { defaultValue: 'Неактивен' })}
+                                ? t('clientBillingLocalized.activeLabel')
+                                : t('clientBillingLocalized.inactiveLabel')}
                         </Button>
                     </Box>
                     <TextField

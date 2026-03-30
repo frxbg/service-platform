@@ -1,4 +1,6 @@
 from datetime import datetime
+from decimal import Decimal
+import math
 from typing import Optional
 from uuid import UUID
 
@@ -43,6 +45,95 @@ COMPLETABLE_REQUEST_STATUSES = {
 
 
 class MobileRequestService:
+    @staticmethod
+    def _to_decimal_coordinate(value: Optional[float]) -> Optional[Decimal]:
+        if value is None:
+            return None
+        return Decimal(f"{value:.6f}")
+
+    @staticmethod
+    def _to_decimal_distance(value: Optional[float]) -> Optional[Decimal]:
+        if value is None:
+            return None
+        return Decimal(f"{value:.2f}")
+
+    @staticmethod
+    def _estimate_distance_km(
+        start_latitude: Optional[Decimal],
+        start_longitude: Optional[Decimal],
+        end_latitude: Optional[Decimal],
+        end_longitude: Optional[Decimal],
+    ) -> Optional[Decimal]:
+        if None in {start_latitude, start_longitude, end_latitude, end_longitude}:
+            return None
+
+        lat1 = math.radians(float(start_latitude))
+        lon1 = math.radians(float(start_longitude))
+        lat2 = math.radians(float(end_latitude))
+        lon2 = math.radians(float(end_longitude))
+        d_lat = lat2 - lat1
+        d_lon = lon2 - lon1
+        a = math.sin(d_lat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(d_lon / 2) ** 2
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        return MobileRequestService._to_decimal_distance(6371.0 * c)
+
+    @staticmethod
+    def _get_my_active_travel_log(
+        request: models.ServiceRequest,
+        current_user: models.User,
+    ) -> Optional[models.ServiceTravelLog]:
+        active_logs = [
+            log
+            for log in (request.travel_logs or [])
+            if log.technician_user_id == current_user.id and log.ended_at is None
+        ]
+        if not active_logs:
+            return None
+        active_logs.sort(key=lambda item: (item.started_at or datetime.min, item.created_at or datetime.min), reverse=True)
+        return active_logs[0]
+
+    @staticmethod
+    def _normalize_equipment_value(value: Optional[str]) -> str:
+        return (value or "").strip().lower()
+
+    @staticmethod
+    def _equipment_key(asset: models.EquipmentAsset) -> str:
+        serial = MobileRequestService._normalize_equipment_value(asset.serial_number)
+        if serial:
+            return f"serial:{serial}"
+
+        asset_tag = MobileRequestService._normalize_equipment_value(asset.asset_tag)
+        if asset_tag:
+            return f"asset:{asset_tag}"
+
+        composite = "|".join(
+            filter(
+                None,
+                [
+                    MobileRequestService._normalize_equipment_value(asset.equipment_type),
+                    MobileRequestService._normalize_equipment_value(asset.manufacturer),
+                    MobileRequestService._normalize_equipment_value(asset.model),
+                    MobileRequestService._normalize_equipment_value(asset.location_note),
+                ],
+            )
+        )
+        if composite:
+            return f"composite:{composite}"
+
+        return f"id:{asset.id}"
+
+    @staticmethod
+    def _equipment_display_name(asset: models.EquipmentAsset) -> str:
+        parts = [
+            asset.equipment_type,
+            asset.manufacturer,
+            asset.model,
+            asset.serial_number,
+            asset.asset_tag,
+        ]
+        cleaned = [part.strip() for part in parts if part and part.strip()]
+        return " / ".join(cleaned) if cleaned else str(asset.id)
+
     @staticmethod
     def _serialize_signatures(request: models.ServiceRequest) -> list[dict]:
         active_signatures = [signature for signature in (request.signatures or []) if signature.is_active]
@@ -126,6 +217,8 @@ class MobileRequestService:
                 selectinload(models.ServiceRequest.assignments).selectinload(models.ServiceAssignment.assigned_by_user),
                 selectinload(models.ServiceRequest.work_logs).selectinload(models.WorkLog.technician_user),
                 selectinload(models.ServiceRequest.work_logs).selectinload(models.WorkLog.created_by_user),
+                selectinload(models.ServiceRequest.travel_logs).selectinload(models.ServiceTravelLog.technician_user),
+                selectinload(models.ServiceRequest.travel_logs).selectinload(models.ServiceTravelLog.created_by_user),
                 selectinload(models.ServiceRequest.material_usages).selectinload(models.MaterialUsage.material),
                 selectinload(models.ServiceRequest.material_usages).selectinload(models.MaterialUsage.warehouse),
                 selectinload(models.ServiceRequest.material_usages).selectinload(models.MaterialUsage.technician_user),
@@ -228,6 +321,21 @@ class MobileRequestService:
         }
 
     @staticmethod
+    def _serialize_site_request_item(request: models.ServiceRequest, *, current_user: models.User) -> dict:
+        base = MobileRequestService._serialize_workboard_item(request, current_user=current_user)
+        equipment_keys = sorted(
+            {
+                MobileRequestService._equipment_key(asset)
+                for asset in (request.equipment_assets or [])
+                if asset.is_active
+            }
+        )
+        return {
+            **base,
+            "equipment_keys": equipment_keys,
+        }
+
+    @staticmethod
     def _sort_key(item: dict) -> tuple[int, int, float]:
         reported_at = item["reported_at"]
         timestamp = reported_at.timestamp() if reported_at else 0
@@ -292,6 +400,7 @@ class MobileRequestService:
         base = ServiceRequestService._serialize_request_detail(
             request,
             include_billing_project_commercial=False,
+            current_user=current_user,
         )
         workboard = MobileRequestService._serialize_workboard_item(request, current_user=current_user)
         return {
@@ -307,11 +416,125 @@ class MobileRequestService:
             "billing_project": base["billing_project"],
             "assignments": base["assignments"],
             "work_logs": base["work_logs"],
+            "travel_logs": base["travel_logs"],
             "material_usages": base["material_usages"],
             "equipment_assets": base["equipment_assets"],
             "signatures": MobileRequestService._serialize_signatures(request),
             "can_complete": MobileRequestService._has_required_signatures(request)
             and request.status in COMPLETABLE_REQUEST_STATUSES,
+        }
+
+    @staticmethod
+    def get_site_detail(
+        db: Session,
+        *,
+        site_id: UUID,
+        current_user: models.User,
+    ) -> dict:
+        MobileRequestService._assert_mobile_visibility(db, current_user)
+
+        site = (
+            db.query(models.ClientSite)
+            .options(selectinload(models.ClientSite.client))
+            .filter(models.ClientSite.id == site_id)
+            .first()
+        )
+        if not site:
+            raise HTTPException(status_code=404, detail="Client site not found")
+
+        requests = (
+            MobileRequestService._base_query(db)
+            .filter(models.ServiceRequest.site_id == site_id)
+            .all()
+        )
+        serialized_requests = [
+            MobileRequestService._serialize_site_request_item(request, current_user=current_user)
+            for request in requests
+        ]
+        serialized_requests.sort(key=MobileRequestService._sort_key)
+
+        equipment_assets = (
+            db.query(models.EquipmentAsset)
+            .filter(models.EquipmentAsset.site_id == site_id)
+            .order_by(
+                models.EquipmentAsset.is_active.desc(),
+                models.EquipmentAsset.equipment_type.asc(),
+                models.EquipmentAsset.manufacturer.asc(),
+                models.EquipmentAsset.model.asc(),
+            )
+            .all()
+        )
+
+        equipment_map: dict[str, dict] = {}
+        for asset in equipment_assets:
+            equipment_key = MobileRequestService._equipment_key(asset)
+            current = equipment_map.get(equipment_key)
+            if current is None:
+                current = {
+                    "equipment_key": equipment_key,
+                    "display_name": MobileRequestService._equipment_display_name(asset),
+                    "equipment_type": asset.equipment_type,
+                    "manufacturer": asset.manufacturer,
+                    "model": asset.model,
+                    "serial_number": asset.serial_number,
+                    "asset_tag": asset.asset_tag,
+                    "location_note": asset.location_note,
+                    "refrigerant": asset.refrigerant,
+                    "notes": asset.notes,
+                    "is_active": asset.is_active,
+                    "_request_ids": set(),
+                }
+                equipment_map[equipment_key] = current
+
+            if asset.request_id:
+                current["_request_ids"].add(str(asset.request_id))
+            current["is_active"] = current["is_active"] or asset.is_active
+
+        equipment = []
+        for item in equipment_map.values():
+            equipment.append(
+                {
+                    "equipment_key": item["equipment_key"],
+                    "display_name": item["display_name"],
+                    "equipment_type": item["equipment_type"],
+                    "manufacturer": item["manufacturer"],
+                    "model": item["model"],
+                    "serial_number": item["serial_number"],
+                    "asset_tag": item["asset_tag"],
+                    "location_note": item["location_note"],
+                    "refrigerant": item["refrigerant"],
+                    "notes": item["notes"],
+                    "is_active": item["is_active"],
+                    "request_count": len(item["_request_ids"]),
+                }
+            )
+
+        equipment.sort(
+            key=lambda item: (
+                0 if item["is_active"] else 1,
+                item["equipment_type"].lower(),
+                item["display_name"].lower(),
+            )
+        )
+
+        return {
+            "id": site.id,
+            "client_id": site.client_id,
+            "client_name": site.client.name,
+            "site_code": site.site_code,
+            "site_name": site.site_name,
+            "city": site.city,
+            "address": site.address,
+            "notes": site.notes,
+            "equipment": equipment,
+            "current_requests": [
+                item
+                for item in serialized_requests
+                if item["status"] not in {"COMPLETED", "CLOSED", "CANCELLED"}
+            ],
+            "completed_requests": [
+                item for item in serialized_requests if item["status"] in {"COMPLETED", "CLOSED"}
+            ],
         }
 
     @staticmethod
@@ -325,8 +548,7 @@ class MobileRequestService:
         request = MobileRequestService._base_query(db).filter(models.ServiceRequest.id == request_id).first()
         if not request:
             raise HTTPException(status_code=404, detail="Service request not found")
-        if request.status in TERMINAL_REQUEST_STATUSES:
-            raise HTTPException(status_code=400, detail="Closed or cancelled requests cannot be accepted")
+        ServiceRequestService.ensure_request_editable(request, current_user=current_user, action_label="modified")
 
         my_assignment = next(
             (assignment for assignment in request.assignments if assignment.technician_user_id == current_user.id),
@@ -461,9 +683,7 @@ class MobileRequestService:
             require_all=False,
         )
         request = MobileRequestService._get_request_or_404(db, request_id=request_id)
-
-        if request.status in TERMINAL_REQUEST_STATUSES:
-            raise HTTPException(status_code=400, detail="Closed or cancelled requests cannot be started")
+        ServiceRequestService.ensure_request_editable(request, current_user=current_user, action_label="modified")
 
         assignment = MobileRequestService._get_my_assignment(request, current_user)
         if not assignment:
@@ -535,6 +755,179 @@ class MobileRequestService:
         return MobileRequestService.get_request_detail(db, request_id=request_id, current_user=current_user)
 
     @staticmethod
+    def start_travel(
+        db: Session,
+        *,
+        request_id: UUID,
+        payload: schemas.mobile.MobileTravelStartCreate,
+        current_user: models.User,
+    ) -> dict:
+        MobileRequestService._assert_mobile_visibility(db, current_user)
+        MobileRequestService._require_permissions(
+            db,
+            current_user,
+            PermissionCode.SERVICE_REQUESTS_EDIT.value,
+            PermissionCode.SERVICE_REQUESTS_ACCEPT.value,
+            PermissionCode.WORK_LOGS_MANAGE.value,
+            require_all=False,
+        )
+        request = MobileRequestService._get_request_or_404(db, request_id=request_id)
+        ServiceRequestService.ensure_request_editable(request, current_user=current_user, action_label="modified")
+
+        assignment = MobileRequestService._get_my_assignment(request, current_user)
+        if not assignment:
+            if MobileRequestService._available_to_accept(request):
+                MobileRequestService.accept_or_self_claim(db, request_id=request_id, current_user=current_user)
+                request = MobileRequestService._get_request_or_404(db, request_id=request_id)
+                assignment = MobileRequestService._get_my_assignment(request, current_user)
+            else:
+                raise HTTPException(status_code=400, detail="You do not have an active assignment for this request")
+
+        if assignment and assignment.assignment_status == models.ServiceAssignmentStatus.PENDING:
+            assignment.assignment_status = models.ServiceAssignmentStatus.ACCEPTED
+            assignment.accepted_at = datetime.utcnow()
+            assignment.reject_reason = None
+            request.status = models.ServiceRequestStatus.ACCEPTED
+            db.add(assignment)
+            db.add(request)
+
+        if MobileRequestService._get_my_active_travel_log(request, current_user):
+            raise HTTPException(status_code=400, detail="Travel is already active for this request")
+
+        travel_log = models.ServiceTravelLog(
+            request_id=request.id,
+            technician_user_id=current_user.id,
+            created_by_user_id=current_user.id,
+            started_at=payload.started_at or datetime.utcnow(),
+            start_latitude=MobileRequestService._to_decimal_coordinate(payload.latitude),
+            start_longitude=MobileRequestService._to_decimal_coordinate(payload.longitude),
+        )
+        db.add(travel_log)
+        db.flush()
+        AuditService.log_event(
+            db,
+            action="service_request.travel_started_mobile",
+            entity_type="service_travel_log",
+            entity_id=str(travel_log.id),
+            actor_user_id=current_user.id,
+            details={"request_id": str(request.id)},
+        )
+        db.commit()
+        return MobileRequestService.get_request_detail(db, request_id=request_id, current_user=current_user)
+
+    @staticmethod
+    def stop_travel(
+        db: Session,
+        *,
+        request_id: UUID,
+        payload: schemas.mobile.MobileTravelStopUpdate,
+        current_user: models.User,
+    ) -> dict:
+        MobileRequestService._assert_mobile_visibility(db, current_user)
+        MobileRequestService._require_permissions(
+            db,
+            current_user,
+            PermissionCode.SERVICE_REQUESTS_EDIT.value,
+            PermissionCode.WORK_LOGS_MANAGE.value,
+            require_all=False,
+        )
+        request = MobileRequestService._get_request_or_404(db, request_id=request_id)
+        ServiceRequestService.ensure_request_editable(request, current_user=current_user, action_label="modified")
+        assignment = MobileRequestService._get_my_assignment(request, current_user)
+        if not assignment:
+            raise HTTPException(status_code=400, detail="You do not have an active assignment for this request")
+
+        travel_log = MobileRequestService._get_my_active_travel_log(request, current_user)
+        if not travel_log:
+            raise HTTPException(status_code=400, detail="There is no active travel log for this request")
+
+        ended_at = payload.ended_at or datetime.utcnow()
+        if ended_at < travel_log.started_at:
+            raise HTTPException(status_code=400, detail="Travel end time cannot be earlier than the start time")
+
+        travel_log.ended_at = ended_at
+        travel_log.end_latitude = MobileRequestService._to_decimal_coordinate(payload.latitude)
+        travel_log.end_longitude = MobileRequestService._to_decimal_coordinate(payload.longitude)
+        estimated_duration_minutes = max(int((ended_at - travel_log.started_at).total_seconds() // 60), 0)
+        estimated_distance_km = MobileRequestService._estimate_distance_km(
+            travel_log.start_latitude,
+            travel_log.start_longitude,
+            travel_log.end_latitude,
+            travel_log.end_longitude,
+        )
+        travel_log.estimated_duration_minutes = estimated_duration_minutes
+        travel_log.final_duration_minutes = estimated_duration_minutes
+        travel_log.estimated_distance_km = estimated_distance_km
+        travel_log.final_distance_km = estimated_distance_km
+        travel_log.is_gps_estimated = estimated_distance_km is not None
+        db.add(travel_log)
+        AuditService.log_event(
+            db,
+            action="service_request.travel_stopped_mobile",
+            entity_type="service_travel_log",
+            entity_id=str(travel_log.id),
+            actor_user_id=current_user.id,
+            details={"request_id": str(request.id)},
+        )
+        db.commit()
+        return MobileRequestService.get_request_detail(db, request_id=request_id, current_user=current_user)
+
+    @staticmethod
+    def update_travel_log(
+        db: Session,
+        *,
+        request_id: UUID,
+        travel_log_id: UUID,
+        payload: schemas.mobile.MobileTravelManualUpdate,
+        current_user: models.User,
+    ) -> dict:
+        MobileRequestService._assert_mobile_visibility(db, current_user)
+        MobileRequestService._require_permissions(
+            db,
+            current_user,
+            PermissionCode.SERVICE_REQUESTS_EDIT.value,
+            PermissionCode.WORK_LOGS_MANAGE.value,
+            require_all=False,
+        )
+        request = MobileRequestService._get_request_or_404(db, request_id=request_id)
+        ServiceRequestService.ensure_request_editable(request, current_user=current_user, action_label="modified")
+        assignment = MobileRequestService._get_my_assignment(request, current_user)
+        if not assignment:
+            raise HTTPException(status_code=400, detail="You do not have an active assignment for this request")
+
+        travel_log = next(
+            (
+                log
+                for log in (request.travel_logs or [])
+                if log.id == travel_log_id and log.technician_user_id == current_user.id
+            ),
+            None,
+        )
+        if not travel_log:
+            raise HTTPException(status_code=404, detail="Travel log not found")
+        if travel_log.ended_at is None:
+            raise HTTPException(status_code=400, detail="Travel log must be stopped before it can be adjusted")
+
+        if payload.final_duration_minutes is not None:
+            travel_log.final_duration_minutes = payload.final_duration_minutes
+        if payload.final_distance_km is not None:
+            travel_log.final_distance_km = payload.final_distance_km
+        if payload.manual_adjustment_note is not None:
+            travel_log.manual_adjustment_note = payload.manual_adjustment_note.strip() or None
+
+        db.add(travel_log)
+        AuditService.log_event(
+            db,
+            action="service_request.travel_adjusted_mobile",
+            entity_type="service_travel_log",
+            entity_id=str(travel_log.id),
+            actor_user_id=current_user.id,
+            details={"request_id": str(request.id)},
+        )
+        db.commit()
+        return MobileRequestService.get_request_detail(db, request_id=request_id, current_user=current_user)
+
+    @staticmethod
     def add_material_usage(
         db: Session,
         *,
@@ -549,6 +942,7 @@ class MobileRequestService:
             PermissionCode.MATERIAL_USAGES_MANAGE.value,
         )
         request = MobileRequestService._get_request_or_404(db, request_id=request_id)
+        ServiceRequestService.ensure_request_editable(request, current_user=current_user, action_label="modified")
         assignment = MobileRequestService._get_my_assignment(request, current_user)
         if not assignment:
             raise HTTPException(status_code=400, detail="You do not have an active assignment for this request")
@@ -564,6 +958,47 @@ class MobileRequestService:
                 unit=payload.unit,
                 notes=payload.notes,
                 used_at=payload.used_at,
+            ),
+            current_user=current_user,
+        )
+        return MobileRequestService.get_request_detail(db, request_id=request_id, current_user=current_user)
+
+    @staticmethod
+    def add_equipment_asset(
+        db: Session,
+        *,
+        request_id: UUID,
+        payload: schemas.mobile.MobileEquipmentCreate,
+        current_user: models.User,
+    ) -> dict:
+        MobileRequestService._assert_mobile_visibility(db, current_user)
+        MobileRequestService._require_permissions(
+            db,
+            current_user,
+            PermissionCode.EQUIPMENT_MANAGE.value,
+            PermissionCode.WORK_LOGS_MANAGE.value,
+            PermissionCode.SERVICE_REQUESTS_EDIT.value,
+            require_all=False,
+        )
+        request = MobileRequestService._get_request_or_404(db, request_id=request_id)
+        ServiceRequestService.ensure_request_editable(request, current_user=current_user, action_label="modified")
+        assignment = MobileRequestService._get_my_assignment(request, current_user)
+        if not assignment:
+            raise HTTPException(status_code=400, detail="You do not have an active assignment for this request")
+
+        ServiceRequestService.add_equipment_asset(
+            db,
+            payload=schemas.service_request.EquipmentAssetCreate(
+                request_id=request_id,
+                equipment_type=payload.equipment_type,
+                manufacturer=payload.manufacturer,
+                model=payload.model,
+                serial_number=payload.serial_number,
+                asset_tag=payload.asset_tag,
+                location_note=payload.location_note,
+                refrigerant=payload.refrigerant,
+                notes=payload.notes,
+                is_active=payload.is_active,
             ),
             current_user=current_user,
         )
@@ -657,6 +1092,7 @@ class MobileRequestService:
             require_all=False,
         )
         request = MobileRequestService._get_request_or_404(db, request_id=request_id)
+        ServiceRequestService.ensure_request_editable(request, current_user=current_user, action_label="modified")
         assignment = MobileRequestService._get_my_assignment(request, current_user)
         if not assignment:
             raise HTTPException(status_code=400, detail="You do not have an active assignment for this request")
@@ -716,6 +1152,7 @@ class MobileRequestService:
             require_all=False,
         )
         request = MobileRequestService._get_request_or_404(db, request_id=request_id)
+        ServiceRequestService.ensure_request_editable(request, current_user=current_user, action_label="modified")
         assignment = MobileRequestService._get_my_assignment(request, current_user)
         if not assignment:
             raise HTTPException(status_code=400, detail="You do not have an active assignment for this request")

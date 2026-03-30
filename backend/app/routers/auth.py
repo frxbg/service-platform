@@ -165,9 +165,9 @@ def request_password_reset(
     frontend_base = settings.FRONTEND_BASE_URL or "http://localhost:5173"
     reset_link = f"{frontend_base.rstrip('/')}/reset-password?token={reset_token}"
 
-    subject = "Reset your PyOffers password"
+    subject = "Reset your Service Platform password"
     body = (
-        "You requested a password reset for your PyOffers account.\n\n"
+        "You requested a password reset for your Service Platform account.\n\n"
         f"Reset link: {reset_link}\n\n"
         "If you did not request this, you can ignore this email."
     )

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import axios from 'axios';
 import { Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -36,8 +37,14 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-    } catch {
-      setError(t('auth.invalidCredentials'));
+    } catch (error) {
+      if (axios.isAxiosError(error) && !error.response) {
+        setError(t('auth.serverConnectionError'));
+      } else if (axios.isAxiosError(error) && error.response?.status === 400) {
+        setError(t('auth.invalidCredentials'));
+      } else {
+        setError(t('common.error'));
+      }
     } finally {
       setIsSubmitting(false);
     }

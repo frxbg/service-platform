@@ -99,6 +99,7 @@ class ServiceRequest(Base):
     discovered_during_request = relationship("ServiceRequest", remote_side=[id])
     assignments = relationship("ServiceAssignment", back_populates="request", cascade="all, delete-orphan")
     work_logs = relationship("WorkLog", back_populates="request", cascade="all, delete-orphan")
+    travel_logs = relationship("ServiceTravelLog", back_populates="request", cascade="all, delete-orphan")
     material_usages = relationship("MaterialUsage", back_populates="request", cascade="all, delete-orphan")
     equipment_assets = relationship("EquipmentAsset", back_populates="request", cascade="all, delete-orphan")
     signatures = relationship("ServiceProtocolSignature", back_populates="request", cascade="all, delete-orphan")

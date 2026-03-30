@@ -12,6 +12,7 @@ from app.schemas.service_request import (
     MaterialUsage,
     ReferenceBillingProjectOperational,
     ServiceAssignment,
+    TravelLog,
     WorkLog,
 )
 
@@ -49,6 +50,10 @@ class MobileRequestListItem(BaseModel):
     current_assignment_status: Optional[str] = None
 
 
+class MobileSiteRequestListItem(MobileRequestListItem):
+    equipment_keys: list[str] = Field(default_factory=list)
+
+
 class MobileWorkboardResponse(BaseModel):
     assigned_to_me: list[MobileRequestListItem] = Field(default_factory=list)
     available: list[MobileRequestListItem] = Field(default_factory=list)
@@ -76,6 +81,7 @@ class MobileRequestDetail(MobileRequestListItem):
     billing_project: Optional[ReferenceBillingProjectOperational] = None
     assignments: list[ServiceAssignment] = Field(default_factory=list)
     work_logs: list[WorkLog] = Field(default_factory=list)
+    travel_logs: list[TravelLog] = Field(default_factory=list)
     material_usages: list[MaterialUsage] = Field(default_factory=list)
     equipment_assets: list[EquipmentAsset] = Field(default_factory=list)
     signatures: list["MobileRequestSignature"] = Field(default_factory=list)
@@ -88,6 +94,24 @@ class MobileAcceptRequestResponse(BaseModel):
 
 class MobileRequestAction(BaseModel):
     reject_reason: Optional[str] = None
+
+
+class MobileTravelStartCreate(BaseModel):
+    started_at: Optional[datetime] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+
+class MobileTravelStopUpdate(BaseModel):
+    ended_at: Optional[datetime] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+
+class MobileTravelManualUpdate(BaseModel):
+    final_duration_minutes: Optional[int] = Field(default=None, ge=0)
+    final_distance_km: Optional[Decimal] = Field(default=None, ge=0)
+    manual_adjustment_note: Optional[str] = None
 
 
 class MobileWorkLogCreate(BaseModel):
@@ -125,8 +149,49 @@ class MobileWarehouseOption(BaseModel):
     is_active: bool
 
 
+class MobileSiteEquipmentOption(BaseModel):
+    equipment_key: str
+    display_name: str
+    equipment_type: str
+    manufacturer: Optional[str] = None
+    model: Optional[str] = None
+    serial_number: Optional[str] = None
+    asset_tag: Optional[str] = None
+    location_note: Optional[str] = None
+    refrigerant: Optional[str] = None
+    notes: Optional[str] = None
+    is_active: bool = True
+    request_count: int = 0
+
+
+class MobileSiteDetail(BaseModel):
+    id: UUID
+    client_id: UUID
+    client_name: str
+    site_code: str
+    site_name: Optional[str] = None
+    city: Optional[str] = None
+    address: Optional[str] = None
+    notes: Optional[str] = None
+    equipment: list[MobileSiteEquipmentOption] = Field(default_factory=list)
+    current_requests: list[MobileSiteRequestListItem] = Field(default_factory=list)
+    completed_requests: list[MobileSiteRequestListItem] = Field(default_factory=list)
+
+
 class MobileRequestMutationResponse(BaseModel):
     request: MobileRequestDetail
+
+
+class MobileEquipmentCreate(BaseModel):
+    equipment_type: str
+    manufacturer: Optional[str] = None
+    model: Optional[str] = None
+    serial_number: Optional[str] = None
+    asset_tag: Optional[str] = None
+    location_note: Optional[str] = None
+    refrigerant: Optional[str] = None
+    notes: Optional[str] = None
+    is_active: bool = True
 
 
 class MobileSignatureCreate(BaseModel):

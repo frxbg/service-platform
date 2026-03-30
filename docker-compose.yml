@@ -1,4 +1,23 @@
 services:
+  https-proxy:
+    image: caddy:2.8
+    container_name: service-platform-https
+    restart: unless-stopped
+    ports:
+      - "443:443"
+      - "3443:3443"
+      - "8443:8443"
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - mobile-app
+      - backend
+
   db:
     image: postgres:15-alpine
     container_name: service-platform-db
@@ -36,8 +55,9 @@ services:
       JWT_ALGORITHM: HS256
       JWT_ACCESS_TOKEN_EXPIRES_MINUTES: 30
       JWT_REFRESH_TOKEN_EXPIRES_MINUTES: 10080
-      FRONTEND_BASE_URL: http://localhost:3000
-      CORS_ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001,http://localhost:5173
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:3000}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3001,http://localhost:5173}
+      CORS_ALLOWED_ORIGIN_REGEX: ${CORS_ALLOWED_ORIGIN_REGEX:-^https?://(localhost|127\\.0\\.0\\.1|192\\.168\\.\\d{1,3}\\.\\d{1,3}|10\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|172\\.(1[6-9]|2\\d|3[0-1])\\.\\d{1,3}\\.\\d{1,3})(:\\d+)?$}
     depends_on:
       db:
         condition: service_healthy
@@ -53,8 +73,6 @@ services:
       - /app/node_modules
     ports:
       - "3000:3000"
-    environment:
-      VITE_API_BASE_URL: http://localhost:8000
     depends_on:
       - backend
 
@@ -69,10 +87,10 @@ services:
       - /app/node_modules
     ports:
       - "3001:3001"
-    environment:
-      VITE_API_BASE_URL: http://localhost:8000
     depends_on:
       - backend
 
 volumes:
   postgres_data:
+  caddy_data:
+  caddy_config:

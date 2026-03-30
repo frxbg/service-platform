@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Alert,
   Box,
+  Button,
   Card,
   CardContent,
   CircularProgress,
@@ -14,6 +15,7 @@ import {
 } from '@mui/material';
 
 import api from '../api/axios';
+import BarcodeScannerDialog from '../components/BarcodeScannerDialog';
 import MobileLayout from '../components/MobileLayout';
 import type { MobileMaterialOption, MobileWarehouseOption } from '../types/mobile';
 
@@ -21,6 +23,7 @@ export default function MaterialsPage() {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [warehouseId, setWarehouseId] = useState('');
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const warehousesQuery = useQuery({
     queryKey: ['mobile-warehouses'],
@@ -63,11 +66,17 @@ export default function MaterialsPage() {
           ))}
         </TextField>
 
-        <TextField
-          label={t('materialsPage.search')}
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
+        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+          <TextField
+            label={t('materialsPage.search')}
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            sx={{ flex: '1 1 240px' }}
+          />
+          <Button variant="outlined" onClick={() => setScannerOpen(true)}>
+            {t('materialsPage.scanBarcode')}
+          </Button>
+        </Stack>
 
         <Alert severity="info">{t('materialsPage.stockPending')}</Alert>
 
@@ -90,7 +99,10 @@ export default function MaterialsPage() {
                 <Typography variant="body2" color="text.secondary">
                   {material.description || material.category || t('common.notAvailable')}
                 </Typography>
-                <Typography variant="caption">{material.unit}</Typography>
+                <Typography variant="caption">
+                  {material.unit}
+                  {material.barcode ? ` • ${material.barcode}` : ''}
+                </Typography>
               </Stack>
             </CardContent>
           </Card>
@@ -100,6 +112,12 @@ export default function MaterialsPage() {
           <Alert severity="info">{t('materialsPage.empty')}</Alert>
         ) : null}
       </Stack>
+
+      <BarcodeScannerDialog
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onDetected={(value) => setSearch(value)}
+      />
     </MobileLayout>
   );
 }

@@ -33,6 +33,7 @@ import {
 } from '@mui/icons-material';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
+import { formatBgDate } from '../utils/dateTime';
 import { hasAnyPermission, hasPermission } from '../utils/permissions';
 
 interface Offer {
@@ -69,7 +70,7 @@ const Offers: React.FC = () => {
         queryKey: ['offers', page, rowsPerPage, search, statusFilter, dateFrom, dateTo],
         enabled: canReadOffers,
         queryFn: async () => {
-            const { data } = await api.get('/offers', {
+            const { data } = await api.get('/offers/', {
                 params: {
                     skip: page * rowsPerPage,
                     limit: rowsPerPage,
@@ -318,7 +319,7 @@ const Offers: React.FC = () => {
                                         />
                                     </TableCell>
                                     <TableCell>{formatMoney(offer.total_price)}</TableCell>
-                                    <TableCell>{new Date(offer.created_at).toLocaleDateString()}</TableCell>
+                                    <TableCell>{formatBgDate(offer.created_at)}</TableCell>
                                     <TableCell onClick={(e) => e.stopPropagation()}>
                                         {canEditOffer && (
                                             <IconButton onClick={() => navigate(`/offers/${offer.id}`)}>

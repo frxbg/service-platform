@@ -1,12 +1,12 @@
 # Service Platform
 
-Самостоятелна сервизна платформа, изградена в отделен workspace върху базата на PyOffers.
+Самостоятелна сервизна платформа, отделена от legacy PyOffers кода и развивана като собствен GitHub проект.
 
-Този проект е умишлено отделен от текущия GitHub проект, за да може новият service/ticketing модул да се развива независимо и по-късно да бъде публикуван като самостоятелно repository.
+Това repo съдържа активния продукт и вече не се третира като вложена част от по-голям mono-repo. Backend, web frontend и mobile app са в корена на проекта.
 
 ## Какво представлява
 
-`service-platform/` комбинира в една система:
+Репото комбинира в една система:
 
 - сервизни заявки
 - назначаване на техници
@@ -31,9 +31,9 @@
 ## Защо е отделно
 
 - оригиналният проект остава непокътнат
-- новият модул се развива само в `service-platform/`
-- структурата позволява по-късно лесно отделяне в ново GitHub repo
-- новите backend и frontend промени не замърсяват текущия production flow на стария проект
+- legacy PyOffers кодът може да се поддържа отделно
+- активната разработка се случва директно в това repository
+- backend, frontend и mobile app вече се намират в root структурата на проекта
 
 ## Основни модули
 
@@ -200,10 +200,10 @@ Technician-safe data:
 
 Основни backend директории:
 
-- [backend/app/models](/c:/Users/User/Documents/Projects/pyOffer-master-main/service-platform/backend/app/models)
-- [backend/app/routers](/c:/Users/User/Documents/Projects/pyOffer-master-main/service-platform/backend/app/routers)
-- [backend/app/services](/c:/Users/User/Documents/Projects/pyOffer-master-main/service-platform/backend/app/services)
-- [backend/alembic/versions](/c:/Users/User/Documents/Projects/pyOffer-master-main/service-platform/backend/alembic/versions)
+- [backend/app/models](/c:/Users/User/Documents/Projects/service-platform/backend/app/models)
+- [backend/app/routers](/c:/Users/User/Documents/Projects/service-platform/backend/app/routers)
+- [backend/app/services](/c:/Users/User/Documents/Projects/service-platform/backend/app/services)
+- [backend/alembic/versions](/c:/Users/User/Documents/Projects/service-platform/backend/alembic/versions)
 
 ## Текущо реализирани frontend части
 
@@ -222,10 +222,10 @@ Technician-safe data:
 
 Основни frontend директории:
 
-- [frontend/src/pages](/c:/Users/User/Documents/Projects/pyOffer-master-main/service-platform/frontend/src/pages)
-- [frontend/src/components](/c:/Users/User/Documents/Projects/pyOffer-master-main/service-platform/frontend/src/components)
-- [frontend/src/context](/c:/Users/User/Documents/Projects/pyOffer-master-main/service-platform/frontend/src/context)
-- [frontend/src/locales](/c:/Users/User/Documents/Projects/pyOffer-master-main/service-platform/frontend/src/locales)
+- [frontend/src/pages](/c:/Users/User/Documents/Projects/service-platform/frontend/src/pages)
+- [frontend/src/components](/c:/Users/User/Documents/Projects/service-platform/frontend/src/components)
+- [frontend/src/context](/c:/Users/User/Documents/Projects/service-platform/frontend/src/context)
+- [frontend/src/locales](/c:/Users/User/Documents/Projects/service-platform/frontend/src/locales)
 
 ## Docker старт
 
@@ -234,7 +234,6 @@ Technician-safe data:
 ### Команда
 
 ```bash
-cd service-platform
 docker compose up --build
 ```
 
@@ -256,15 +255,15 @@ docker compose up --build
 
 ### Полезни env файлове
 
-- [backend/.env.example](/c:/Users/User/Documents/Projects/pyOffer-master-main/service-platform/backend/.env.example)
-- [frontend/.env.example](/c:/Users/User/Documents/Projects/pyOffer-master-main/service-platform/frontend/.env.example)
+- [backend/.env.example](/c:/Users/User/Documents/Projects/service-platform/backend/.env.example)
+- [frontend/.env.example](/c:/Users/User/Documents/Projects/service-platform/frontend/.env.example)
 
 ## Локална разработка
 
 ### Backend
 
 ```bash
-cd service-platform/backend
+cd backend
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
@@ -275,7 +274,7 @@ uvicorn app.main:app --reload
 ### Frontend
 
 ```bash
-cd service-platform/frontend
+cd frontend
 npm install
 npm run dev
 ```
@@ -292,7 +291,7 @@ npm run dev
 
 Тестовете са в:
 
-- [backend/tests](/c:/Users/User/Documents/Projects/pyOffer-master-main/service-platform/backend/tests)
+- [backend/tests](/c:/Users/User/Documents/Projects/service-platform/backend/tests)
 
 Забележка:
 в работната среда, в която беше изграждан модулът, не всички тестове успяха да бъдат изпълнени автоматично, така че е нужна локална валидация.
@@ -303,7 +302,7 @@ npm run dev
 
 Готово:
 
-- отделен workspace
+- самостоятелно repository
 - service domain foundation
 - request dashboard
 - request lifecycle
@@ -318,20 +317,20 @@ npm run dev
 
 - по-пълна автоматична валидация и smoke tests
 - допълнителен UI polish
-- mobile приложение по спецификацията в [mobile_app.md](/c:/Users/User/Documents/Projects/pyOffer-master-main/service-platform/mobile_app.md)
+- mobile приложение по спецификацията в [mobile_app.md](/c:/Users/User/Documents/Projects/service-platform/mobile_app.md)
 - допълнително production hardening
 
 ## Полезни документи
 
-- [IMPLEMENTATION_PLAN.md](/c:/Users/User/Documents/Projects/pyOffer-master-main/service-platform/IMPLEMENTATION_PLAN.md)
-- [TICKET_PROMPT.md](/c:/Users/User/Documents/Projects/pyOffer-master-main/service-platform/TICKET_PROMPT.md)
-- [client.md](/c:/Users/User/Documents/Projects/pyOffer-master-main/service-platform/client.md)
-- [mobile_app.md](/c:/Users/User/Documents/Projects/pyOffer-master-main/service-platform/mobile_app.md)
+- [IMPLEMENTATION_PLAN.md](/c:/Users/User/Documents/Projects/service-platform/IMPLEMENTATION_PLAN.md)
+- [TICKET_PROMPT.md](/c:/Users/User/Documents/Projects/service-platform/TICKET_PROMPT.md)
+- [client.md](/c:/Users/User/Documents/Projects/service-platform/client.md)
+- [mobile_app.md](/c:/Users/User/Documents/Projects/service-platform/mobile_app.md)
 
 ## Структура
 
 ```text
-service-platform/
+.
 |- backend/
 |  |- alembic/
 |  |- app/

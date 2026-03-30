@@ -1,15 +1,9 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import {
-    Box,
-    Button,
-    Container,
-    TextField,
-    Typography,
-    Paper,
-    Alert,
-} from '@mui/material';
+import { Alert, Box, Button, Container, Paper, TextField, Typography } from '@mui/material';
+
 import api from '../api/axios';
 
 interface FormValues {
@@ -20,6 +14,7 @@ interface FormValues {
 }
 
 export const InitialSetupPage: React.FC = () => {
+    const { t } = useTranslation();
     const { register, handleSubmit, formState: { errors } } = useForm<FormValues>();
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<boolean>(false);
@@ -30,12 +25,11 @@ export const InitialSetupPage: React.FC = () => {
         try {
             await api.post('/auth/bootstrap-superuser', data);
             setSuccess(true);
-            // Redirect to login after 2 seconds
             setTimeout(() => {
                 navigate('/login');
             }, 2000);
         } catch (err: any) {
-            setError(err.response?.data?.detail ?? 'Грешка при създаване на администратор.');
+            setError(err.response?.data?.detail ?? t('auth.passwordResetRequestError'));
         }
     };
 
@@ -53,16 +47,16 @@ export const InitialSetupPage: React.FC = () => {
                 <Container maxWidth="sm">
                     <Paper elevation={3} sx={{ p: 4, textAlign: 'center' }}>
                         <Typography variant="h4" gutterBottom color="success.main">
-                            ✓ Готово!
+                            {t('auth.initialSetupSuccessTitle')}
                         </Typography>
                         <Typography variant="h6" gutterBottom>
-                            Първият администратор е създаден
+                            {t('auth.initialSetupSuccessSubtitle')}
                         </Typography>
                         <Typography color="text.secondary">
-                            Сега можете да влезете в системата с въведения email и парола.
+                            {t('auth.loginContinue')}
                         </Typography>
                         <Typography variant="body2" sx={{ mt: 2 }} color="text.secondary">
-                            Пренасочване към login страница...
+                            {t('auth.initialSetupRedirecting')}
                         </Typography>
                     </Paper>
                 </Container>
@@ -83,72 +77,66 @@ export const InitialSetupPage: React.FC = () => {
             <Container maxWidth="sm">
                 <Paper elevation={3} sx={{ p: 4 }}>
                     <Typography variant="h4" gutterBottom align="center" color="primary">
-                        PyOffers
+                        {t('app.brandName')}
                     </Typography>
                     <Typography variant="h5" gutterBottom align="center">
-                        Първоначална настройка
+                        {t('auth.initialSetupTitle')}
                     </Typography>
                     <Typography variant="body1" gutterBottom align="center" color="text.secondary" sx={{ mb: 3 }}>
-                        Не са намерени потребители. Моля, създайте първия администратор.
+                        {t('auth.initialSetupSubtitle')}
                     </Typography>
 
                     <Box component="form" onSubmit={handleSubmit(onSubmit)}>
                         <TextField
-                            label="Email"
+                            label={t('auth.email')}
                             type="email"
                             fullWidth
                             margin="normal"
-                            {...register('email', { required: 'Email е задължителен' })}
+                            {...register('email', { required: t('auth.emailRequired') })}
                             error={!!errors.email}
                             helperText={errors.email?.message}
                         />
                         <TextField
-                            label="Име и фамилия"
+                            label={t('auth.fullName')}
                             fullWidth
                             margin="normal"
-                            {...register('full_name', { required: 'Име е задължително' })}
+                            {...register('full_name', { required: t('auth.fullNameRequired') })}
                             error={!!errors.full_name}
                             helperText={errors.full_name?.message}
                         />
                         <TextField
-                            label="Потребителски код"
+                            label={t('auth.userCode')}
                             fullWidth
                             margin="normal"
-                            helperText="Кратък код за номера на оферти, напр. ADMIN или TST"
+                            helperText={errors.user_code?.message || t('auth.userCodeHint')}
                             {...register('user_code', {
-                                required: 'Код е задължителен',
-                                minLength: { value: 2, message: 'Минимум 2 символа' },
-                                maxLength: { value: 10, message: 'Максимум 10 символа' },
+                                required: t('auth.userCodeRequired'),
+                                minLength: { value: 2, message: t('auth.userCodeMin') },
+                                maxLength: { value: 10, message: t('auth.userCodeMax') },
                             })}
                             error={!!errors.user_code}
                         />
                         <TextField
-                            label="Парола"
+                            label={t('auth.password')}
                             type="password"
                             fullWidth
                             margin="normal"
                             {...register('password', {
-                                required: 'Парола е задължителна',
-                                minLength: { value: 6, message: 'Минимум 6 символа' },
+                                required: t('auth.passwordRequired'),
+                                minLength: { value: 6, message: t('auth.passwordMin') },
                             })}
                             error={!!errors.password}
                             helperText={errors.password?.message}
                         />
 
-                        {error && (
+                        {error ? (
                             <Alert severity="error" sx={{ mt: 2 }}>
                                 {error}
                             </Alert>
-                        )}
+                        ) : null}
 
-                        <Button
-                            variant="contained"
-                            type="submit"
-                            fullWidth
-                            size="large"
-                            sx={{ mt: 3 }}
-                        >
-                            Създай администратор
+                        <Button variant="contained" type="submit" fullWidth size="large" sx={{ mt: 3 }}>
+                            {t('auth.initialSetupCreateAdmin')}
                         </Button>
                     </Box>
                 </Paper>

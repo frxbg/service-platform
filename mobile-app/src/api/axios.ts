@@ -1,7 +1,29 @@
 import axios from 'axios';
 
-const fallbackApiBaseUrl = `${window.location.protocol}//${window.location.hostname}:8000`;
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || fallbackApiBaseUrl;
+const fallbackApiBaseUrl = '/api';
+
+function shouldUseFallbackApiBaseUrl(configuredApiBaseUrl?: string): boolean {
+  if (!configuredApiBaseUrl) {
+    return true;
+  }
+
+  try {
+    const configuredUrl = new URL(configuredApiBaseUrl, window.location.origin);
+    const configuredHost = configuredUrl.hostname;
+    const currentHost = window.location.hostname;
+    const configuredIsLoopback = ['localhost', '127.0.0.1', '0.0.0.0'].includes(configuredHost);
+    const currentIsLoopback = ['localhost', '127.0.0.1', '0.0.0.0'].includes(currentHost);
+
+    return configuredIsLoopback && !currentIsLoopback;
+  } catch {
+    return false;
+  }
+}
+
+const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+const apiBaseUrl = shouldUseFallbackApiBaseUrl(configuredApiBaseUrl)
+  ? fallbackApiBaseUrl
+  : configuredApiBaseUrl || fallbackApiBaseUrl;
 
 const api = axios.create({
   baseURL: apiBaseUrl,

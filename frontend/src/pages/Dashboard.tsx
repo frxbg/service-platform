@@ -20,19 +20,18 @@ import {
     TableRow,
     Typography,
     useMediaQuery,
-    useTheme,
-} from '@mui/material';
+    useTheme } from '@mui/material';
 import {
     Add as AddIcon,
     Assignment as AssignmentIcon,
     Description as DescriptionIcon,
     ErrorOutline as ErrorOutlineIcon,
     HourglassTop as HourglassTopIcon,
-    PlaylistAddCheckCircle as PlaylistAddCheckCircleIcon,
-} from '@mui/icons-material';
+    PlaylistAddCheckCircle as PlaylistAddCheckCircleIcon } from '@mui/icons-material';
 
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
+import { formatBgDateTime } from '../utils/dateTime';
 import { hasAnyPermission, hasPermission } from '../utils/permissions';
 import { getAppLocale, getRequestPriorityLabel, getRequestStatusLabel, requestPriorityColors, requestStatusColors } from '../utils/serviceRequestI18n';
 
@@ -85,8 +84,7 @@ const OFFER_STATUS_COLOR: Record<string, 'default' | 'primary' | 'success' | 'er
     SENT: 'warning',
     ACCEPTED: 'success',
     REJECTED: 'error',
-    ARCHIVED: 'default',
-};
+    ARCHIVED: 'default' };
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon, gradient, loading }) => (
     <Card
@@ -95,8 +93,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon, gradient, loadi
             border: 'none',
             color: '#fff',
             background: gradient,
-            boxShadow: '0 10px 32px rgba(15, 23, 42, 0.14)',
-        }}
+            boxShadow: '0 10px 32px rgba(15, 23, 42, 0.14)' }}
     >
         <CardContent sx={{ p: 2.5 }}>
             <Stack direction="row" justifyContent="space-between" spacing={2}>
@@ -120,8 +117,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon, gradient, loadi
                         bgcolor: 'rgba(255,255,255,0.16)',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                    }}
+                        justifyContent: 'center' }}
                 >
                     {icon}
                 </Box>
@@ -144,40 +140,34 @@ const Dashboard: React.FC = () => {
     const { data: requestSummary, isLoading: requestsLoading } = useQuery<ServiceDashboardSummary>({
         queryKey: ['dashboard-service-summary'],
         enabled: canReadService,
-        queryFn: async () => (await api.get('/service-requests/dashboard-summary')).data,
-    });
+        queryFn: async () => (await api.get('/service-requests/dashboard-summary')).data });
 
     const { data: offersStats, isLoading: offersLoading } = useQuery<OffersStats>({
         queryKey: ['dashboard-offers-summary'],
         enabled: canReadOffers,
-        queryFn: async () => (await api.get('/offers/stats')).data,
-    });
+        queryFn: async () => (await api.get('/offers/stats')).data });
 
     const requestCards = [
         {
-            title: t('dashboardService.cards.newRequests', { defaultValue: 'Нови заявки' }),
+            title: t('dashboardService.cards.newRequests'),
             value: requestSummary?.new_requests,
             icon: <ErrorOutlineIcon sx={{ color: '#fff' }} />,
-            gradient: 'linear-gradient(135deg, #dc2626 0%, #f97316 100%)',
-        },
+            gradient: 'linear-gradient(135deg, #dc2626 0%, #f97316 100%)' },
         {
-            title: t('dashboardService.cards.activeRequests', { defaultValue: 'Активни заявки' }),
+            title: t('dashboardService.cards.activeRequests'),
             value: requestSummary?.active_requests,
             icon: <AssignmentIcon sx={{ color: '#fff' }} />,
-            gradient: 'linear-gradient(135deg, #1d4ed8 0%, #0f766e 100%)',
-        },
+            gradient: 'linear-gradient(135deg, #1d4ed8 0%, #0f766e 100%)' },
         {
-            title: t('dashboardService.cards.urgentQueue', { defaultValue: 'Спешна опашка' }),
+            title: t('dashboardService.cards.urgentQueue'),
             value: requestSummary?.urgent_requests,
             icon: <HourglassTopIcon sx={{ color: '#fff' }} />,
-            gradient: 'linear-gradient(135deg, #b91c1c 0%, #7c3aed 100%)',
-        },
+            gradient: 'linear-gradient(135deg, #b91c1c 0%, #7c3aed 100%)' },
         {
-            title: t('dashboardService.cards.unassigned', { defaultValue: 'Неразпределени' }),
+            title: t('dashboardService.cards.unassigned'),
             value: requestSummary?.unassigned_requests,
             icon: <PlaylistAddCheckCircleIcon sx={{ color: '#fff' }} />,
-            gradient: 'linear-gradient(135deg, #0f766e 0%, #10b981 100%)',
-        },
+            gradient: 'linear-gradient(135deg, #0f766e 0%, #10b981 100%)' },
     ];
 
     return (
@@ -190,23 +180,21 @@ const Dashboard: React.FC = () => {
             >
                 <Box>
                     <Typography variant="h4" sx={{ fontWeight: 800 }}>
-                        {t('dashboardService.title', { defaultValue: 'Сервизно табло' })}
+                        {t('dashboardService.title')}
                     </Typography>
                     <Typography color="text.secondary">
-                        {t('dashboardService.subtitle', {
-                            defaultValue: 'Новите и активните заявки са основният фокус тук. Офертите остават като вторичен контекст.',
-                        })}
+                        {t('dashboardService.subtitle')}
                     </Typography>
                 </Box>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
                     {canReadService && (
                         <Button variant="outlined" onClick={() => navigate('/service-requests')}>
-                            {t('dashboardService.openQueue', { defaultValue: 'Отвори опашката със заявки' })}
+                            {t('dashboardService.openQueue')}
                         </Button>
                     )}
                     {canCreateService && (
                         <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/service-requests')}>
-                            {t('dashboardService.newRequest', { defaultValue: 'Нова заявка' })}
+                            {t('dashboardService.newRequest')}
                         </Button>
                     )}
                 </Stack>
@@ -214,9 +202,7 @@ const Dashboard: React.FC = () => {
 
             {!canReadService ? (
                 <Alert severity="warning">
-                    {t('dashboardService.noPermission', {
-                        defaultValue: 'Текущият профил няма право да вижда сервизните заявки.',
-                    })}
+                    {t('dashboardService.noPermission')}
                 </Alert>
             ) : (
                 <>
@@ -224,8 +210,7 @@ const Dashboard: React.FC = () => {
                         sx={{
                             display: 'grid',
                             gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', xl: 'repeat(4, 1fr)' },
-                            gap: 2,
-                        }}
+                            gap: 2 }}
                     >
                         {requestCards.map((card) => (
                             <StatCard key={card.title} {...card} loading={requestsLoading} />
@@ -236,29 +221,26 @@ const Dashboard: React.FC = () => {
                         sx={{
                             display: 'grid',
                             gridTemplateColumns: { xs: '1fr', xl: '1.8fr 1fr' },
-                            gap: 2.5,
-                        }}
+                            gap: 2.5 }}
                     >
                         <Paper sx={{ overflow: 'hidden' }}>
                             <Box sx={{ p: 2.5, borderBottom: '1px solid', borderColor: 'divider' }}>
                                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                                    {t('dashboardService.latestTitle', { defaultValue: 'Последни сервизни заявки' })}
+                                    {t('dashboardService.latestTitle')}
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary">
-                                    {t('dashboardService.latestSubtitle', {
-                                        defaultValue: 'Най-новите входящи тикети и текущо разпределените техници.',
-                                    })}
+                                    {t('dashboardService.latestSubtitle')}
                                 </Typography>
                             </Box>
                             <TableContainer>
                                 <Table size={isMobile ? 'small' : 'medium'}>
                                     <TableHead>
                                         <TableRow>
-                                            <TableCell>{t('dashboardService.table.request', { defaultValue: 'Заявка' })}</TableCell>
-                                            <TableCell>{t('dashboardService.table.clientSite', { defaultValue: 'Клиент / Обект' })}</TableCell>
-                                            <TableCell>{t('dashboardService.table.status', { defaultValue: 'Статус' })}</TableCell>
-                                            {!isMobile && <TableCell>{t('dashboardService.table.technicians', { defaultValue: 'Техници' })}</TableCell>}
-                                            <TableCell>{t('dashboardService.table.reported', { defaultValue: 'Подадена' })}</TableCell>
+                                            <TableCell>{t('dashboardService.table.request')}</TableCell>
+                                            <TableCell>{t('dashboardService.table.clientSite')}</TableCell>
+                                            <TableCell>{t('dashboardService.table.status')}</TableCell>
+                                            {!isMobile && <TableCell>{t('dashboardService.table.technicians')}</TableCell>}
+                                            <TableCell>{t('dashboardService.table.reported')}</TableCell>
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
@@ -306,11 +288,11 @@ const Dashboard: React.FC = () => {
                                                             <Typography variant="body2" color="text.secondary">
                                                                 {request.assigned_technicians.length > 0
                                                                     ? request.assigned_technicians.join(', ')
-                                                                    : t('common.notAssigned', { defaultValue: 'Няма назначен' })}
+                                                                    : t('common.notAssigned')}
                                                             </Typography>
                                                         </TableCell>
                                                     )}
-                                                    <TableCell>{new Date(request.reported_at).toLocaleString(locale)}</TableCell>
+                                                    <TableCell>{formatBgDateTime(request.reported_at)}</TableCell>
                                                 </TableRow>
                                             ))}
                                     </TableBody>
@@ -321,7 +303,7 @@ const Dashboard: React.FC = () => {
                         <Stack spacing={2.5}>
                             <Paper sx={{ p: 2.5 }}>
                                 <Typography variant="h6" sx={{ fontWeight: 700, mb: 1.5 }}>
-                                    {t('dashboardService.statusOverview', { defaultValue: 'Преглед по статуси' })}
+                                    {t('dashboardService.statusOverview')}
                                 </Typography>
                                 <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                                     {requestsLoading
@@ -340,8 +322,7 @@ const Dashboard: React.FC = () => {
                                                     bgcolor: 'background.paper',
                                                     display: 'flex',
                                                     alignItems: 'center',
-                                                    gap: 1,
-                                                }}
+                                                    gap: 1 }}
                                             >
                                                 <Chip
                                                     label={getRequestStatusLabel(t, status)}
@@ -356,32 +337,24 @@ const Dashboard: React.FC = () => {
 
                             <Paper sx={{ p: 2.5 }}>
                                 <Typography variant="h6" sx={{ fontWeight: 700, mb: 1.5 }}>
-                                    {t('dashboardService.focusTitle', { defaultValue: 'Фокус върху заявките' })}
+                                    {t('dashboardService.focusTitle')}
                                 </Typography>
                                 <Stack spacing={1.25}>
                                     <Typography variant="body2" color="text.secondary">
                                         {t('dashboardService.focus.newRequests', {
-                                            defaultValue: 'Нови заявки: {{count}}',
-                                            count: requestSummary?.new_requests ?? 0,
-                                        })}
+                                            count: requestSummary?.new_requests ?? 0 })}
                                     </Typography>
                                     <Typography variant="body2" color="text.secondary">
                                         {t('dashboardService.focus.inProgress', {
-                                            defaultValue: 'В процес: {{count}}',
-                                            count: requestSummary?.in_progress_requests ?? 0,
-                                        })}
+                                            count: requestSummary?.in_progress_requests ?? 0 })}
                                     </Typography>
                                     <Typography variant="body2" color="text.secondary">
                                         {t('dashboardService.focus.urgentQueue', {
-                                            defaultValue: 'Спешна опашка: {{count}}',
-                                            count: requestSummary?.urgent_requests ?? 0,
-                                        })}
+                                            count: requestSummary?.urgent_requests ?? 0 })}
                                     </Typography>
                                     <Typography variant="body2" color="text.secondary">
                                         {t('dashboardService.focus.unassigned', {
-                                            defaultValue: 'Неразпределени: {{count}}',
-                                            count: requestSummary?.unassigned_requests ?? 0,
-                                        })}
+                                            count: requestSummary?.unassigned_requests ?? 0 })}
                                     </Typography>
                                 </Stack>
                             </Paper>
@@ -395,12 +368,10 @@ const Dashboard: React.FC = () => {
                     <Stack spacing={2}>
                         <Box>
                             <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                                {t('dashboardService.offersTitle', { defaultValue: 'Снимка на офертите' })}
+                                {t('dashboardService.offersTitle')}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
-                                {t('dashboardService.offersSubtitle', {
-                                    defaultValue: 'Вторичен търговски контекст за същия workspace.',
-                                })}
+                                {t('dashboardService.offersSubtitle')}
                             </Typography>
                         </Box>
 
@@ -420,8 +391,7 @@ const Dashboard: React.FC = () => {
                                             borderColor: 'divider',
                                             display: 'flex',
                                             alignItems: 'center',
-                                            gap: 1,
-                                        }}
+                                            gap: 1 }}
                                     >
                                         <Chip label={status} color={OFFER_STATUS_COLOR[status] || 'default'} size="small" />
                                         <Typography sx={{ fontWeight: 700 }}>{count}</Typography>
@@ -433,10 +403,10 @@ const Dashboard: React.FC = () => {
                             <Table size="small">
                                 <TableHead>
                                     <TableRow>
-                                        <TableCell>{t('dashboardService.offersTable.offer', { defaultValue: 'Оферта' })}</TableCell>
-                                        <TableCell>{t('dashboardService.offersTable.client', { defaultValue: 'Клиент' })}</TableCell>
-                                        <TableCell>{t('dashboardService.offersTable.status', { defaultValue: 'Статус' })}</TableCell>
-                                        <TableCell align="right">{t('dashboardService.offersTable.value', { defaultValue: 'Стойност' })}</TableCell>
+                                        <TableCell>{t('dashboardService.offersTable.offer')}</TableCell>
+                                        <TableCell>{t('dashboardService.offersTable.client')}</TableCell>
+                                        <TableCell>{t('dashboardService.offersTable.status')}</TableCell>
+                                        <TableCell align="right">{t('dashboardService.offersTable.value')}</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
@@ -459,7 +429,7 @@ const Dashboard: React.FC = () => {
                                                 <TableCell>{offer.client_name}</TableCell>
                                                 <TableCell>
                                                     <Chip
-                                                        label={t(`status.${offer.status.toLowerCase()}`, { defaultValue: offer.status })}
+                                                        label={t(`status.${offer.status.toLowerCase()}`)}
                                                         color={OFFER_STATUS_COLOR[offer.status] || 'default'}
                                                         size="small"
                                                     />
@@ -467,8 +437,7 @@ const Dashboard: React.FC = () => {
                                                 <TableCell align="right">
                                                     {Number(offer.total_price || 0).toLocaleString(locale, {
                                                         minimumFractionDigits: 2,
-                                                        maximumFractionDigits: 2,
-                                                    })} EUR
+                                                        maximumFractionDigits: 2 })} EUR
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -482,7 +451,7 @@ const Dashboard: React.FC = () => {
                             sx={{ alignSelf: 'flex-start' }}
                             onClick={() => navigate('/offers')}
                         >
-                            {t('dashboardService.openOffers', { defaultValue: 'Отвори офертите' })}
+                            {t('dashboardService.openOffers')}
                         </Button>
                     </Stack>
                 </Paper>

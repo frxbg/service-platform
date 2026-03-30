@@ -1,0 +1,35 @@
+{
+  admin off
+  local_certs
+  auto_https disable_redirects
+}
+
+https://localhost, https://127.0.0.1 {
+  tls internal
+  reverse_proxy frontend:3000
+}
+
+https://{$PUBLIC_HOST:localhost} {
+  tls internal
+  reverse_proxy frontend:3000
+}
+
+https://localhost:3443, https://127.0.0.1:3443 {
+  tls internal
+  reverse_proxy mobile-app:3001
+}
+
+https://{$PUBLIC_HOST:localhost}:3443 {
+  tls internal
+  reverse_proxy mobile-app:3001
+}
+
+https://localhost:8443, https://127.0.0.1:8443 {
+  tls internal
+  reverse_proxy backend:8000
+}
+
+https://{$PUBLIC_HOST:localhost}:8443 {
+  tls internal
+  reverse_proxy backend:8000
+}

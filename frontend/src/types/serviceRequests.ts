@@ -132,6 +132,7 @@ export interface ServiceRequestListItem {
     assigned_technicians: string[];
     reported_at: string;
     created_at: string;
+    is_locked: boolean;
 }
 
 export interface ServiceRequest extends ServiceRequestListItem {
@@ -146,6 +147,9 @@ export interface ServiceRequest extends ServiceRequestListItem {
     discovered_during_request_id?: string | null;
     notes_internal?: string | null;
     notes_client?: string | null;
+    is_locked: boolean;
+    can_edit: boolean;
+    can_delete: boolean;
     assignments: ServiceAssignment[];
     work_logs: WorkLog[];
     material_usages: MaterialUsage[];

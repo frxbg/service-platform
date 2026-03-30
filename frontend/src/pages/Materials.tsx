@@ -31,6 +31,7 @@ import { useNavigate } from 'react-router-dom';
 
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
+import { formatBgDate } from '../utils/dateTime';
 import { hasAnyPermission, hasPermission } from '../utils/permissions';
 
 interface Material {
@@ -81,7 +82,7 @@ const Materials: React.FC = () => {
     const { data: materials = [], isLoading } = useQuery<Material[]>({
         queryKey: ['materials', page, rowsPerPage, search],
         queryFn: async () => {
-            const { data } = await api.get('/materials', {
+            const { data } = await api.get('/materials/', {
                 params: { skip: page * rowsPerPage, limit: rowsPerPage, search },
             });
             return data;
@@ -96,7 +97,7 @@ const Materials: React.FC = () => {
 
     const createMaterialMutation = useMutation({
         mutationFn: async (payload: typeof newMaterial) => {
-            const { data } = await api.post('/materials', payload);
+            const { data } = await api.post('/materials/', payload);
             return data;
         },
         onSuccess: () => {
@@ -290,7 +291,7 @@ const Materials: React.FC = () => {
                                     ) : null}
                                     <TableCell>{material.is_active === false ? 'Неактивен' : 'Активен'}</TableCell>
                                     <TableCell>
-                                        {material.last_synced_at ? new Date(material.last_synced_at).toLocaleDateString() : '-'}
+                                        {material.last_synced_at ? formatBgDate(material.last_synced_at) : '-'}
                                     </TableCell>
                                 </TableRow>
                             ))

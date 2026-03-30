@@ -66,6 +66,11 @@ def create_first_superuser(
         password_hash=security.get_password_hash(user_in.password),
         full_name=user_in.full_name,
         role=models.UserRole.ADMIN,
+        role_template_id=(
+            db.query(models.RoleTemplate.id)
+            .filter(models.RoleTemplate.code == "administrator")
+            .scalar()
+        ),
         user_code=user_in.user_code.upper(),
         is_active=True,
     )

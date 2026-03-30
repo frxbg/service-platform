@@ -21,7 +21,7 @@ def build_user(user_id: str = "owner-id") -> User:
         id=user_id,
         email=f"{user_id}@example.com",
         password_hash="hash",
-        role=UserRole.USER,
+        role=UserRole.OFFICE,
         user_code="USR",
     )
 

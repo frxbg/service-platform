@@ -40,17 +40,13 @@ export default function ClientDetailsPage() {
   });
 
   const requests = useMemo<MobileRequestListItem[]>(
-    () =>
-      [
-        ...(workboardQuery.data?.assigned_to_me || []),
-        ...(workboardQuery.data?.available || []),
-        ...(workboardQuery.data?.other_visible || []),
-      ].filter((item) => item.client_id === clientId),
-    [clientId, workboardQuery.data],
+    () => [
+      ...(workboardQuery.data?.assigned_to_me || []),
+      ...(workboardQuery.data?.available || []),
+      ...(workboardQuery.data?.other_visible || []),
+    ],
+    [workboardQuery.data],
   );
-
-  const currentRequests = requests.filter((item) => !['COMPLETED', 'CLOSED', 'CANCELLED'].includes(item.status));
-  const completedRequests = requests.filter((item) => ['COMPLETED', 'CLOSED'].includes(item.status));
 
   return (
     <MobileLayout title={clientQuery.data?.name || t('navigation.clients')} showBack>
@@ -71,79 +67,67 @@ export default function ClientDetailsPage() {
                 <Stack spacing={1}>
                   <Typography variant="h5">{clientQuery.data.name}</Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {clientQuery.data.city || clientQuery.data.email || clientQuery.data.phone || t('common.notAvailable')}
+                    {clientQuery.data.city ||
+                      clientQuery.data.email ||
+                      clientQuery.data.phone ||
+                      t('common.notAvailable')}
                   </Typography>
-                </Stack>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent>
-                <Stack spacing={1}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-                    {t('clientsPage.sites')}
-                  </Typography>
-                  {clientQuery.data.sites.map((site) => (
-                    <Box key={site.id}>
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                        {site.site_name || site.site_code}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {site.city || site.address || t('common.notAvailable')}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Stack>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent>
-                <Stack spacing={1}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-                    {t('clientsPage.currentRequests')}
-                  </Typography>
-                  {currentRequests.length ? currentRequests.map((request) => (
-                    <Button
-                      key={request.id}
-                      variant="text"
-                      sx={{ justifyContent: 'flex-start' }}
-                      onClick={() => navigate(`/requests/${request.id}`)}
-                    >
-                      {request.request_number} - {request.problem_summary}
-                    </Button>
-                  )) : (
+                  {clientQuery.data.notes ? (
                     <Typography variant="body2" color="text.secondary">
-                      {t('common.notAvailable')}
+                      {clientQuery.data.notes}
                     </Typography>
-                  )}
+                  ) : null}
                 </Stack>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardContent>
-                <Stack spacing={1}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-                    {t('clientsPage.completedRequests')}
-                  </Typography>
-                  {completedRequests.length ? completedRequests.map((request) => (
-                    <Button
-                      key={request.id}
-                      variant="text"
-                      sx={{ justifyContent: 'flex-start' }}
-                      onClick={() => navigate(`/requests/${request.id}`)}
-                    >
-                      {request.request_number} - {request.problem_summary}
-                    </Button>
-                  )) : (
-                    <Typography variant="body2" color="text.secondary">
-                      {t('common.notAvailable')}
-                    </Typography>
-                  )}
-                </Stack>
-              </CardContent>
-            </Card>
+            <Stack spacing={1}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+                {t('clientsPage.sites')}
+              </Typography>
+              {clientQuery.data.sites.length ? (
+                clientQuery.data.sites.map((site) => {
+                  const siteRequests = requests.filter((item) => item.site_id === site.id);
+                  const activeCount = siteRequests.filter(
+                    (item) => !['COMPLETED', 'CLOSED', 'CANCELLED'].includes(item.status),
+                  ).length;
+                  const completedCount = siteRequests.filter((item) =>
+                    ['COMPLETED', 'CLOSED'].includes(item.status),
+                  ).length;
+
+                  return (
+                    <Card key={site.id}>
+                      <CardContent>
+                        <Stack spacing={1.25}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+                            {site.site_name || site.site_code}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {site.city || site.address || t('common.notAvailable')}
+                          </Typography>
+                          <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap">
+                            <Typography variant="caption">
+                              {t('clientsPage.activeRequests')}: {activeCount}
+                            </Typography>
+                            <Typography variant="caption">
+                              {t('clientsPage.closedRequests')}: {completedCount}
+                            </Typography>
+                          </Stack>
+                          <Button
+                            variant="contained"
+                            onClick={() => navigate(`/clients/${clientId}/sites/${site.id}`)}
+                          >
+                            {t('clientsPage.openSite')}
+                          </Button>
+                        </Stack>
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              ) : (
+                <Alert severity="info">{t('clientsPage.emptySites')}</Alert>
+              )}
+            </Stack>
           </>
         ) : null}
       </Stack>

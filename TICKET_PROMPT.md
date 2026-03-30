@@ -1,574 +1,573 @@
-You are Codex working inside the repository for PyOffers.
+You are Codex working inside the repository `service-platform`.
 
-Your mission is to evolve the current project into a production-oriented internal platform for HVAC/Refrigeration operations by adding a new Service / Ticketing module on top of the existing system, while also improving architecture, authorization, and security hardening across the application.
+Read and respect the following architecture rule first:
 
-Work carefully, incrementally, and keep the existing Offers functionality operational.
+IMPORTANT:
+- This repository is the active and primary product.
+- Root-level `backend/`, `frontend/`, and `mobile-app/` are the live application code.
+- Legacy PyOffers code may exist elsewhere, but it is not part of this repository layout.
+- Do not reintroduce assumptions about an outer mono-repo or nested `service-platform/` folder.
 
-==================================================
-PRODUCT CONTEXT
-==================================================
-
-Current project:
-- Backend: FastAPI + SQLAlchemy + Alembic + PostgreSQL
-- Frontend: React + TypeScript + Vite + Material UI
-- Existing modules: auth, users, clients, materials, offers, settings, PDF generation
-- Existing useful domains already present:
-  - users
-  - clients
-  - client contacts
-  - client sites / branches
-  - materials
-  - PDF template infrastructure
-
-The existing Offers module must remain intact and continue to work.
-Do NOT merge service tickets into the offers model.
-Service requests and offers are separate business objects.
+You have been given a technical repository description and prior business clarifications.
+Use them as the source of truth for architecture and workflow.
 
 ==================================================
-HIGH-LEVEL GOAL
+PRIMARY MISSION
 ==================================================
 
-Transform the system into a modular platform with:
-1. existing Offers module preserved
-2. new Service Requests / Ticketing module added
-3. security and authorization improvements applied
-4. better deployment readiness
-5. ability to generate service protocol PDFs
+Continue the active Service Platform product by implementing and refining the technician mobile workflow and related backend support, with strong attention to:
 
-Focus first on the core workflow only.
-Do not spend time on advanced exports, BI dashboards, checklist engines, or nonessential polish unless needed for the MVP.
+1. offline-capable technician workflow
+2. equipment/assets list and selection by client site
+3. barcode-based material entry
+4. protocol completion, signatures, PDF preview, print/share
+5. notifications and dispatch behavior
+6. technician-safe data visibility (no commercial pricing exposure)
+7. data safety, backup/export readiness, and auditability
 
-==================================================
-REAL BUSINESS WORKFLOW TO IMPLEMENT
-==================================================
-
-Implement the following real operational flow:
-
-I. From incoming request to execution
-
-1. Request intake
-A request can arrive by external request number, phone, email, etc.
-The administrator creates a new service request with:
-- client
-- site / branch number or name, e.g. "LIDL 102" or "KFC Stamboliyski"
-- problem description
-- date received
-- time received
-
-The logged-in user who creates the request should automatically become the responsible person by default, with ability to change it.
-
-2. Technician assignment and priority
-After registration, the request is assigned to one or more technicians and a priority is set:
-- low
-- standard
-- high
-- urgent
-
-At assignment stage there is no warehouse selection yet because the office often does not know whether parts will be needed.
-
-3. Technician notification
-The assigned technician must be notified about the new service task.
-For now implement this as in-app visibility and backend-ready notification hooks.
-Do not overengineer email/SMS push infrastructure in the first phase.
-
-4. Technician acceptance / rejection
-The assigned technician must be able to:
-- accept the request
-- reject the request
-- optionally provide a rejection reason
-
-5. On-site equipment description
-At the site, the technician must be able to describe the actual serviced equipment because the customer-provided information is not always accurate.
-
-6. Work performed description
-The technician records the actual work performed and the actual time spent.
-
-7. Materials and warehouse
-The technician records materials used by code and must specify the warehouse from which each item was taken.
-A technician may consume materials from different warehouses, not only “their own” warehouse.
-
-Important:
-Multiple technicians may work on the same request.
-The time of each technician must be stored separately and must appear in the service protocol.
-Example:
-2 technicians × 2 hours during working time = 4 hours labor total.
-
-II. Service protocol content
-
-The service protocol must clearly contain:
-1. customer and serviced site
-2. reason for visit
-3. type of repair
-4. execution date
-5. worked time from / to
-6. participating technicians by name
-7. total worked time split by:
-   - regular working time
-   - overtime
-   - weekend
-   - holiday
-8. detailed description of work performed
-9. materials / spare parts used with quantity and warehouse
-
-III. Self-assigned on-site activity
-A technician must be able to create a new independent request while already on site.
-Example:
-- technician goes for issue A, discovers issue B on another unit
-- technician creates a new service request on site
-- the new request is separate from the original one
-- optionally store a reference like “discovered during request X”, but it must remain an independent request
-
-Focus only on these core functions for now.
+Preserve the current architecture and do not break:
+- service request lifecycle logic
+- billing project snapshot logic
+- permission model
+- existing offers module
+- existing web app unless necessary
+- existing mobile app structure unless refactor is justified
 
 ==================================================
-ARCHITECTURAL REQUIREMENTS
+REPOSITORY / ARCHITECTURE CONTEXT
 ==================================================
 
-Preserve existing modules and add new modules cleanly.
+The active product lives in:
 
-Add the following backend domains:
+- `backend/`
+- `frontend/`
+- `mobile-app/`
 
-1. service_requests
-Core ticket / request entity
+The active backend is FastAPI + SQLAlchemy + Alembic + PostgreSQL.
+The active web frontend is React + TypeScript + Vite + MUI.
+The active mobile app is React + TypeScript + Capacitor-based, web-first but ready for native packaging.
 
-2. service_assignments
-Assignment records, acceptance/rejection, history
+The active service platform already contains:
+- service requests
+- assignments
+- work logs
+- material usages
+- equipment assets
+- warehouses
+- billing/service projects
+- service protocol preview/PDF/signatures
+- notifications
+- permission-aware security model
+- separate mobile endpoints and mobile app
 
-3. work_logs
-Time entries per technician
-
-4. material_usages
-Materials used per request with warehouse
-
-5. warehouses
-Warehouse master data
-
-6. equipment_assets
-Equipment / serviced asset records linked to client and site
-
-7. service_protocols
-PDF generation and protocol view model
-
-Do not collapse these into one table.
-Use normalized relational design.
+Use the active repository code as the implementation base.
 
 ==================================================
-DATA MODEL REQUIREMENTS
+CORE IMPLEMENTATION GOALS
 ==================================================
 
-Design proper SQLAlchemy models and Alembic migrations.
+Implement/refine the technician mobile experience and backend support for the following.
 
-Suggested models:
+--------------------------------------------------
+A. TECHNICIAN REQUEST VISIBILITY / DISPATCH FLOW
+--------------------------------------------------
 
-A. ServiceRequest
-Fields should include at minimum:
-- id
-- request_number
-- external_order_number (nullable)
-- source (phone, email, external_number, onsite, other)
-- client_id
-- site_id
-- responsible_user_id
-- created_by_user_id
-- reported_problem
-- request_reason_code
-- repair_type_code
-- priority
-- status
-- reported_at
-- created_at
-- updated_at
-- discovered_during_request_id (nullable)
-- notes_internal
-- notes_client
+Technicians must be able to see all service requests, not only those assigned to them.
 
-B. ServiceAssignment
-- id
-- request_id
-- technician_user_id
-- assigned_by_user_id
-- assigned_at
-- assignment_status (pending, accepted, rejected, cancelled)
-- reject_reason
-- accepted_at
-- rejected_at
-- is_primary
+However, the request list priority/order must be:
 
-C. WorkLog
-- id
-- request_id
-- technician_user_id
-- work_date
-- time_from
-- time_to
-- minutes_total
-- minutes_regular
-- minutes_overtime
-- minutes_weekend
-- minutes_holiday
-- activity_description
-- repair_type_code
-- created_by_user_id
-- created_at
+1. requests assigned to the current technician
+2. unassigned requests available to accept/self-claim
+3. other visible requests
 
-D. Warehouse
-- id
-- code
-- name
-- responsible_user_id (nullable)
-- is_active
+Assigned-to-me requests must:
+- appear at the top
+- be visually highlighted with a distinct color/state
 
-E. MaterialUsage
-- id
-- request_id
-- material_id
-- warehouse_id
-- technician_user_id
-- quantity
-- unit
-- notes
-- used_at
+Technicians must be able to:
+- accept assigned requests
+- reject assigned requests with reason
+- self-accept / self-claim an unassigned request
 
-F. EquipmentAsset
-- id
-- client_id
-- site_id
+If multiple technicians are assigned and the first assigned technician rejects:
+- preserve rejection history
+- clearly show the request was rejected by that technician
+- automatically continue assignment flow to the next technician in order
+- do not lose prior assignment state
+- audit log the event chain
+
+--------------------------------------------------
+B. NOTIFICATIONS
+--------------------------------------------------
+
+Technicians must receive notifications for new requests.
+
+Implement:
+- in-app notifications first
+- architecture ready for future push notifications
+
+Behavior:
+- notify for newly created/newly visible requests
+- for assigned requests, reminder notifications must repeat at configurable intervals until:
+  - request is accepted
+  - request is rejected
+  - assignment changes
+  - request is cancelled/closed
+
+Requests assigned to the current technician must be emphasized in the mobile UI.
+
+--------------------------------------------------
+C. MOBILE APP CAPABILITIES
+--------------------------------------------------
+
+The technician mobile app must be mobile-first and field-oriented.
+
+It must work well on:
+- phones
+- tablets
+
+Add or refine these capabilities:
+
+1. request workboard
+2. request detail screen
+3. quick actions:
+   - Accept
+   - Reject
+   - Start Work
+   - Start Travel
+   - Stop Travel
+   - Navigate
+   - Call
+   - Add Work Log
+   - Add Material
+   - Scan Barcode
+   - Equipment
+   - Protocol
+   - Sign
+   - Print / Share PDF
+   - New Onsite Request
+
+Use large touch targets and low-friction flows.
+
+--------------------------------------------------
+D. OFFLINE SUPPORT
+--------------------------------------------------
+
+Offline capability is mandatory for technician workflow.
+
+Implement a local draft + deferred sync model in the mobile app.
+
+The technician must be able to continue working without network and store locally:
+- request snapshot
+- client/site snapshot
+- equipment snapshot
+- work logs
+- materials usage drafts
+- protocol draft
+- signatures
+- protocol rendering input
+- optional generated local PDF
+
+At minimum support local states:
+- local_draft
+- pending_sync
+- synced
+- sync_failed
+
+Requirements:
+- technicians can continue filling protocol data without network
+- technicians can store signatures locally
+- technicians can add materials and work logs locally
+- when connectivity returns, pending records can be synchronized safely
+- preserve auditability of offline-created data
+
+If practical, support local protocol PDF generation using local template and local draft data.
+
+If full sync engine is too large for this pass, implement:
+1. reliable local draft persistence
+2. clear sync status
+3. safe manual sync/retry
+
+--------------------------------------------------
+E. SERVICE EQUIPMENT / ASSETS BY SITE
+--------------------------------------------------
+
+Equipment/assets by client site are critical and must be implemented as first-class domain objects.
+
+Use the existing `equipment_assets` domain and improve it where needed.
+
+Goals:
+- every client site can have a list of service equipment/assets
+- technicians can browse/search/select equipment when working on a request
+- technicians can add missing equipment on site
+- requests can reference the actual serviced equipment
+- service history can later be anchored around equipment
+
+Modeling requirements:
+- one asset = one real serviced equipment item
+- keep normalized canonical fields plus flexible extra attributes
+- allow grouping into systems if useful
+
+Equipment list UI must support:
+- list all assets for a site
+- search by:
+  - equipment type
+  - manufacturer
+  - model
+  - serial number
+  - asset code
+  - description
+- select one primary serviced asset
+- optionally link multiple related assets
+- create missing asset from mobile request detail screen
+
+Import strategy:
+- support equipment import through importer profiles / mapping logic
+- tolerate heterogeneous Excel structures
+- support one-row-to-many-assets import patterns where needed
+- preserve client/site linkage
+
+Add or refine fields such as:
+- equipment_category
 - equipment_type
 - manufacturer
 - model
 - serial_number
-- asset_tag
-- location_note
-- refrigerant
+- refrigerant_type
+- refrigerant_charge_kg
+- monitoring_position
+- location_within_site
+- served_area_or_purpose
+- warranty_from
+- warranty_to
 - notes
-- is_active
+- extra_attributes_json
 
-G. Optional lookup tables or enums
-- request priority
-- request status
-- request source
-- work time category logic
-- request reason catalog
-- repair type catalog
+--------------------------------------------------
+F. SITE OWNERSHIP / REGION / TECHNICIAN COVERAGE
+--------------------------------------------------
 
-==================================================
-STATUS / WORKFLOW REQUIREMENTS
-==================================================
+For client sites / branches, implement operational ownership fields.
 
-Implement a clear request lifecycle.
+Each site should support:
+- service_region
+- preferred_technician_ids
+- optional backup_technician_ids
 
-Suggested statuses:
-- NEW
-- ASSIGNED
-- PENDING_ACCEPTANCE
-- ACCEPTED
-- REJECTED_BY_TECHNICIAN
-- IN_PROGRESS
-- WAITING_PARTS
-- WAITING_CLIENT
-- COMPLETED
-- CLOSED
-- CANCELLED
+Each technician should support:
+- home_region
+- covered_regions
 
-Implement explicit transition logic in backend service layer.
-Do not leave status transitions as unrestricted patch-anything behavior.
+Use these for:
+- dispatch suggestions
+- filtering
+- future auto-assignment
+- displaying “serviced by...” at site level
 
-==================================================
-PERMISSIONS / AUTHORIZATION REQUIREMENTS
-==================================================
+Choose the best implementation approach based on the current codebase, but support both region logic and specific technician preference logic.
 
-The current system has only coarse roles and needs improvement.
+--------------------------------------------------
+G. TRAVEL TIMER / GPS
+--------------------------------------------------
 
-Implement a permission-oriented authorization layer.
-Keep compatibility with current admin/user roles, but add granular permissions.
+Technicians must be able to track “Travel Time”.
 
-Suggested permissions:
-- offers.read_all
-- offers.read_own
-- offers.edit_own
-- offers.edit_all
-- clients.read
-- clients.manage
-- materials.read
-- materials.manage
-- service_requests.read_all
-- service_requests.read_assigned
-- service_requests.create
-- service_requests.assign
-- service_requests.accept
-- service_requests.reject
-- service_requests.edit
-- service_requests.close
-- work_logs.manage
-- material_usages.manage
-- warehouses.manage
-- equipment.manage
-- settings.manage
-- users.manage
+Implement:
+- Start Travel
+- Stop Travel
 
-At minimum:
-- admins can do everything
-- office/admin users can create and assign requests
-- technicians can see assigned requests, accept/reject them, log work, log materials, create onsite requests
-- technicians should not automatically gain unrestricted client/material/settings management
+Requirements:
+- store travel start timestamp
+- store travel end timestamp
+- if GPS/location permission is granted, capture location data and estimate distance
+- preserve estimated travel time and estimated distance
+- allow later manual correction/edit for precision
+- preserve both automatic and final values
+- audit log manual adjustments
 
-Centralize permission checks.
-Do not duplicate ad hoc authorization logic across routers.
+Suggested concepts:
+- travel log / travel entry linked to request and technician
 
-==================================================
-SECURITY / HARDENING REQUIREMENTS
-==================================================
+The UI must show:
+- current running timer if travel is active
+- review/edit step after stop
+- clear indication whether values are GPS-estimated or manually adjusted
 
-Apply the following improvements in addition to the feature work.
+GPS is supporting operational evidence and automation, not the sole source of truth.
 
-1. CORS hardening
-The backend currently behaves like a dev setup.
-Replace permissive all-origins behavior with environment-based allowed origins.
+--------------------------------------------------
+H. BARCODE SCANNING FOR MATERIALS
+--------------------------------------------------
 
-2. Token/session hardening
-Review current auth flow.
-Reduce exposure of tokens.
-Avoid weak refresh flow patterns.
-Prefer a safer refresh strategy than the current simplistic approach.
-If full cookie-based migration is too large for this iteration, at least:
-- improve refresh handling
-- avoid putting refresh tokens in query params
-- add token rotation readiness
-- make logout/session invalidation designable for future extension
+Barcode-based material entry is mandatory.
 
-3. Remove insecure bootstrap defaults
-Do not rely on static admin credentials.
-Refactor bootstrap/admin creation so production cannot accidentally depend on hardcoded credentials.
+Implement camera-based scanning in the mobile app.
 
-4. Deployment hardening
-Prepare the app for production:
-- remove dev-only reload behavior from production path
-- separate dev and prod compose/runtime assumptions
-- do not expose database ports unnecessarily in production examples
-- do not copy .env files into the image unnecessarily
-- make configuration environment-driven
+Flow:
+1. technician opens Add Material / Scan Barcode
+2. scan via camera
+3. lookup by barcode first
+4. fallback to ERP code/manual search if needed
+5. choose material
+6. choose warehouse
+7. enter quantity
+8. optionally add note
+9. save usage
 
-5. Audit logging
-Add audit logs for at least:
-- login success/failure hooks if practical
-- request creation
-- assignment
-- acceptance/rejection
-- status changes
-- work log creation/update
-- material usage creation/update
-- PDF protocol generation
-- admin/security-relevant settings changes
+Requirements:
+- repeated scanning in one visit must be fast
+- if multiple matches exist, show compact candidate list
+- if no match exists, allow manual fallback
+- prices must never be shown to technicians during this flow
 
-6. Validation and integrity
-Add proper validation for:
-- request/site/client linkage
-- warehouse/material linkage
-- assignment duplication
-- work log time ranges
-- impossible negative values
-- duplicate codes where applicable
+--------------------------------------------------
+I. NAVIGATION AND PHONE LINKS
+--------------------------------------------------
 
-7. Safe template handling
-The app already uses HTML templates for PDFs.
-Keep the current PDF strategy, but implement service protocol PDF generation in a controlled way.
-Do not introduce arbitrary unsafe template execution paths for non-admin users.
+If a request/site has an address:
+- show a prominent Navigate action
+- open mobile navigation/maps app using deep link
+- support address-based or coordinates-based navigation
 
-==================================================
-FRONTEND REQUIREMENTS
-==================================================
+If a phone number exists:
+- show a prominent Call action
+- use dialer-friendly `tel:` handling
 
-Add a clean MVP UI using the existing frontend stack.
+These actions must be visible in request detail and easy to use in the field.
 
-Implement at minimum:
+--------------------------------------------------
+J. SERVICE PROTOCOL / SIGNATURE / PDF / PRINT
+--------------------------------------------------
 
-1. Service request list page
-- filters by status, priority, technician, client, site, date range
-- search
-- visible columns:
-  - request number
-  - client
-  - site
-  - priority
-  - status
-  - responsible person
-  - assigned technician(s)
-  - created/received date
+Protocol completion is a core technician flow.
 
-2. Create service request page/dialog
-Fields:
-- client
-- site
-- problem description
-- source
-- external order number
-- request reason
-- date/time received
-- responsible person defaulted to current user
-- priority
+The mobile app must support:
+- protocol preview
+- protocol signatures
+- protocol PDF generation or retrieval
+- print/share PDF
+- no pricing visible in technician/client protocol view
 
-3. Assignment UI
-- assign one or more technicians
-- mark primary technician
-- show assignment status
+Signature capture requirements:
+- technician signature on screen
+- client signature on screen
+- store signature image
+- if practical, store stroke/vector data
+- store signed_at, signer_name, signer_role
+- store device/IP metadata where available
+- optional location data only if consent is given
+- preserve auditability and invalidation logic if document changes after signing
 
-4. Technician request details page
-- accept request
-- reject request with reason
-- start work / in progress
-- add equipment
-- add work logs
-- add materials with warehouse
-- create onsite follow-up request
+Important:
+Do NOT treat image alone as complete proof.
+Keep layered signature evidence:
+- visible signature
+- audit metadata
+- integrity / hash readiness
 
-5. Service protocol preview/export page
-- display protocol data clearly
-- export PDF
+Printing requirement:
+- support reliable PDF print/share through OS/browser/app share flows
+- do not depend on fragile direct Bluetooth printer integrations as the primary mechanism
+- direct Bluetooth printing may be explored later, but PDF-first print/share is the required baseline
 
-Use existing UI patterns where practical.
-Do not overdesign.
-Keep it production-readable and consistent.
+--------------------------------------------------
+K. NO PRICE VISIBILITY FOR TECHNICIANS
+--------------------------------------------------
 
-==================================================
-PDF / DOCUMENT REQUIREMENTS
-==================================================
+Critical rule:
+Technicians must not see any commercial pricing information.
 
-Add service protocol PDF generation using the current PDF infrastructure pattern.
-Create a separate service protocol template, not mixed into offers template.
+Technicians may see only operational data such as:
+- material code
+- material name
+- description
+- quantity
+- unit
+- warehouse
+- request/site/equipment/workflow data
 
-The service protocol PDF must include:
-- client and site
-- reason for visit
-- repair type
-- execution date
-- from/to worked time
-- technicians by name
-- totals split by regular/overtime/weekend/holiday
-- detailed work description
-- materials with quantities and warehouse
+Technicians must NOT see:
+- material cost
+- material sell price
+- margin
+- labor rates
+- transport rates
+- total commercial value
+- pricing defaults from billing projects
+- internal ERP pricing details
 
-Keep Bulgarian-friendly formatting and encoding in mind.
+Enforce this at backend/API level.
+Do not rely only on frontend hiding.
+
+If necessary, add/refine technician-safe schemas/responses.
+
+--------------------------------------------------
+L. BACKUP / EXPORT / DATA PROTECTION READINESS
+--------------------------------------------------
+
+Add data protection readiness.
+
+Implement or prepare:
+- periodic PostgreSQL backup strategy
+- retention-ready backup workflow
+- JSON export of core business data for disaster recovery / portability
+
+At minimum, support or prepare exports for:
+- service requests
+- assignments
+- work logs
+- material usages
+- equipment assets
+- client/site master data
+- service protocol metadata
+- signature metadata
+
+Also:
+- log backup/export jobs
+- preserve restore-readiness considerations
+- prepare for future encrypted backup storage
+
+This does not need to become a full infrastructure platform in this pass, but the codebase and docs should be ready for it.
 
 ==================================================
-BACKEND API REQUIREMENTS
+SECURITY / AUTHORIZATION / DATA RULES
 ==================================================
 
-Create clean routers and schemas for:
-- /service-requests
-- /service-assignments
-- /work-logs
-- /material-usages
-- /warehouses
-- /equipment
-- /service-protocols
+Respect and preserve the current permission-based architecture.
 
-Use service-layer logic where decisions are nontrivial.
-Do not place all business rules directly inside routers.
+Do not bypass:
+- backend authorization
+- data visibility helpers
+- technician vs commercial access split
 
-==================================================
-MIGRATION STRATEGY
-==================================================
+Backend-first enforcement is required.
 
-Use Alembic migrations.
-Do not break existing offers/users/clients/materials data.
-Prefer additive schema evolution.
+When implementing changes, review:
+- permissions
+- data visibility
+- service workflow invariants
+- mobile endpoints
+- audit logging
 
-If needed, add seed/bootstrap support for:
-- default priorities
-- default statuses
-- optional initial warehouse records
+Preserve:
+- billing project snapshot logic
+- locked request behavior
+- audit trails
+- unique constraints and service request invariants
 
 ==================================================
-TESTING REQUIREMENTS
+IMPLEMENTATION TARGETS
 ==================================================
 
-Add meaningful automated tests, especially for:
-- authorization rules
-- request lifecycle transitions
-- technician accept/reject flow
-- multiple technicians time aggregation
-- warehouse/material usage recording
-- onsite independent request creation
-- PDF/service protocol generation smoke test
-- validation edge cases
+Focus primarily on these active paths:
 
-If there is no test framework yet, add one.
-Prefer backend tests first for the critical business rules.
+Backend:
+- `backend/app/models/`
+- `backend/app/routers/`
+- `backend/app/services/`
+- `backend/app/core/`
+- `backend/app/schemas/`
+- `backend/alembic/versions/`
+
+Mobile app:
+- `mobile-app/src/pages/`
+- `mobile-app/src/components/`
+- `mobile-app/src/context/`
+- `mobile-app/src/api/`
+- `mobile-app/src/types/`
+- `mobile-app/src/utils/`
+
+Web frontend only where needed:
+- if admin/service management screens need support for equipment/region/ownership/notification config
 
 ==================================================
-IMPLEMENTATION STRATEGY
+WORKFLOW FOR CODEX
 ==================================================
 
 Follow this order:
 
 Phase 1:
-- inspect repository structure and existing patterns
-- identify reusable models/components/services
-- produce a concise implementation plan in comments or notes
-- do not change code blindly
+- inspect the current backend, frontend, and mobile app
+- identify what already exists for:
+  - mobile workboard
+  - service requests
+  - equipment assets
+  - notifications
+  - signatures
+  - offline storage potential
+- produce a concise implementation plan before major edits
 
 Phase 2:
-- add new models and migrations
-- add permissions foundation
-- add backend service logic and routers
-- add tests for core flows
+- refine/extend backend models, services, routers, and schemas where required
+- add Alembic migrations only when necessary and keep them additive
 
 Phase 3:
-- add frontend screens/forms for MVP workflow
-- integrate with API
-- ensure existing offers flow still works
+- implement/refine mobile request workboard prioritization and highlight logic
+- implement technician accept/self-claim/reject flows
+- implement notification/reminder backend/frontend flow
+- implement equipment list and selection flow
+- implement barcode scanning and material usage flow
+- implement travel timer/GPS-assisted logging
 
 Phase 4:
-- add service protocol PDF
-- add audit logging
-- apply security/config hardening
+- implement or refine offline draft persistence and sync status handling
+- implement signature capture and protocol PDF print/share flow
+- ensure no price leakage in mobile API/UI
 
 Phase 5:
-- run tests / linters / type checks
-- fix failures
-- summarize completed work, remaining gaps, and follow-up recommendations
+- add/update tests for critical business logic
+- run lint/tests/type checks where applicable
+- summarize architecture changes, remaining gaps, and manual setup requirements
 
 ==================================================
-NON-GOALS FOR THIS ITERATION
+TESTING REQUIREMENTS
 ==================================================
 
-Do NOT spend major time on:
-- advanced analytics
-- full notification infrastructure
-- ERP integration
-- stock quantity accounting engine
-- preventive maintenance checklists
-- payroll/reporting exports
-- mobile app packaging
-unless absolutely required for the MVP structure.
+Add or update tests for critical logic, especially:
+- technician request visibility ordering
+- assigned highlighting data/state
+- self-accept unassigned request flow
+- multi-technician rejection fallback flow
+- no-price visibility rules
+- equipment selection and linkage
+- travel timer / travel log validation
+- offline draft state handling where backend logic applies
+- barcode lookup endpoint behavior
+- signature/protocol workflow smoke tests
 
-Important:
-Warehouses must be implemented now as master data plus per-material usage source selection.
-Do not implement full stock accounting in this iteration.
-However, design the schema so that future stock movement, inventory balance, transfers, and ERP sync can be added without breaking existing service request data.
+==================================================
+NON-GOALS FOR THIS PASS
+==================================================
+
+Do not spend major time on:
+- full warehouse stock accounting
+- deep ERP synchronization engine
+- advanced analytics dashboards
+- payroll/reporting calculations
+- full push notification infrastructure
+- complete customer portal
+- direct Bluetooth printer integration as the primary print method
+
+unless absolutely required to support the mobile MVP architecture.
 
 ==================================================
 OUTPUT REQUIREMENTS
 ==================================================
 
-While working:
-- inspect existing code first
-- explain major decisions briefly in code comments or commit-style summaries
-- keep changes modular
-- avoid unnecessary rewrites
-- preserve current offers functionality
-- avoid breaking migrations
-- avoid insecure shortcuts
-
-At the end:
-1. summarize architecture changes
-2. summarize security improvements applied
-3. list any remaining risks
-4. list recommended next steps
-5. show exactly what still needs manual configuration
+At the end provide:
+1. architecture summary
+2. backend changes summary
+3. mobile app changes summary
+4. offline handling summary
+5. equipment/assets implementation summary
+6. notification/reminder summary
+7. security/no-price-visibility summary
+8. backup/export readiness summary
+9. remaining limitations
+10. what still needs manual environment/device setup
 
 Now begin by:
-- analyzing the repository structure
-- identifying the current auth, router, models, and PDF patterns
-- proposing the concrete file-by-file implementation plan
-- then implementing the solution incrementally
+- analyzing the existing active repository code
+- identifying which parts already exist vs what must be added/refined
+- proposing a file-by-file implementation plan
+- then implementing incrementally

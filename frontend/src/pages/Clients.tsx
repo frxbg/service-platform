@@ -73,7 +73,7 @@ const Clients: React.FC = () => {
     const { data: clients = [], isLoading } = useQuery({
         queryKey: ['clients', page, rowsPerPage, search],
         queryFn: async () => {
-            const { data } = await api.get('/clients', {
+            const { data } = await api.get('/clients/', {
                 params: { skip: page * rowsPerPage, limit: rowsPerPage, search }
             });
             return data;
@@ -81,7 +81,7 @@ const Clients: React.FC = () => {
     });
 
     const createMutation = useMutation({
-        mutationFn: (newClient: Client) => api.post('/clients', newClient),
+        mutationFn: (newClient: Client) => api.post('/clients/', newClient),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['clients'] });
             handleClose();
@@ -142,8 +142,7 @@ const Clients: React.FC = () => {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     InputProps={{
-                        startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />,
-                    }}
+                        startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} /> }}
                 />
             </Box>
 
@@ -153,7 +152,7 @@ const Clients: React.FC = () => {
                         <TableRow>
                             <TableCell>{t('client.name')}</TableCell>
                             <TableCell>{t('client.clientNumber')}</TableCell>
-                            <TableCell>{t('clientBillingLocalized.billingProjectsSummary', { defaultValue: 'Проекти за фактуриране и сервиз' })}</TableCell>
+                            <TableCell>{t('clientBillingLocalized.billingProjectsSummary')}</TableCell>
                             <TableCell>{t('client.vat')}</TableCell>
                             <TableCell>{t('client.city')}</TableCell>
                             <TableCell>{t('client.email')}</TableCell>
@@ -178,9 +177,9 @@ const Clients: React.FC = () => {
                                             const defaultProject =
                                                 activeProjects.find((project) => project.is_default) || activeProjects[0];
                                             if (!client.billing_projects?.length) {
-                                                return t('clientBillingLocalized.noBillingProjects', { defaultValue: 'Няма добавени проекти за фактуриране и сервиз.' });
+                                                return t('clientBillingLocalized.noBillingProjects');
                                             }
-                                            return `${activeProjects.length}/${client.billing_projects.length} ${t('clientBillingLocalized.activeLabel', { defaultValue: 'активни' })}${defaultProject ? ` | ${defaultProject.project_reference}` : ''}`;
+                                            return `${activeProjects.length}/${client.billing_projects.length} ${t('clientBillingLocalized.activeLabel')}${defaultProject ? ` | ${defaultProject.project_reference}` : ''}`;
                                         })()}
                                     </TableCell>
                                     <TableCell>{client.vat_number}</TableCell>
@@ -240,9 +239,7 @@ const Clients: React.FC = () => {
                             />
                         </Box>
                         <Typography variant="caption" color="text.secondary">
-                            {t('clientBillingLocalized.projectNumberLegacyHint', {
-                                defaultValue: 'ERP проектните номера вече се управляват от Client details > Проекти за фактуриране и сервиз. Старите полета остават видими само за съвместимост.',
-                            })}
+                            {t('clientBillingLocalized.projectNumberLegacyHint')}
                         </Typography>
                         <TextField
                             margin="dense"
@@ -252,7 +249,7 @@ const Clients: React.FC = () => {
                         />
                         <TextField
                             margin="dense"
-                            label={t('client.salutationName', { defaultValue: 'Име за обръщение' })}
+                            label={t('client.salutationName')}
                             fullWidth
                             {...register('salutation_name')}
                         />

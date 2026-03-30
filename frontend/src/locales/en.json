@@ -5,6 +5,7 @@
     "clients": "Clients",
     "materials": "Materials",
     "users": "Users",
+    "roles": "Roles",
     "service": "Service"
   },
   "common": {
@@ -52,7 +53,7 @@
       "unassigned": "Unassigned: {{count}}"
     },
     "offersTitle": "Offers snapshot",
-    "offersSubtitle": "Secondary commercial context for the same workspace.",
+    "offersSubtitle": "Secondary commercial context for the same platform.",
     "offersTable": {
       "offer": "Offer",
       "client": "Client",
@@ -70,9 +71,11 @@
       "status": "Status",
       "priority": "Priority",
       "client": "Client",
+      "site": "Site",
       "allStatuses": "All statuses",
       "allPriorities": "All priorities",
-      "allClients": "All clients"
+      "allClients": "All clients",
+      "allSites": "All sites"
     },
     "table": {
       "request": "Request",
@@ -102,6 +105,17 @@
       "cancel": "Cancel",
       "create": "Create",
       "createFailed": "Failed to create service request"
+    },
+    "createPage": {
+      "title": "New service request",
+      "subtitle": "Use searchable fields to quickly select the right client, site and billing project.",
+      "backToList": "Back to requests",
+      "searchClient": "Search client",
+      "searchSite": "Search site",
+      "searchBillingProject": "Search billing project",
+      "searchResponsible": "Search responsible user",
+      "summaryTitle": "Request summary",
+      "requiredHint": "Select client and site, then enter the problem description to continue."
     },
     "priority": {
       "low": "Low",
@@ -156,11 +170,15 @@
         "contract": "Contract",
         "internal": "Internal",
         "other": "Other"
-      }
+      },
+      "assignLater": "Assign later"
     },
     "details": {
       "loading": "Loading...",
       "exportPdf": "Export PDF",
+      "delete": "Delete request",
+      "confirmDelete": "Are you sure you want to delete this request?",
+      "lockedNotice": "This request is locked after completion. Only an administrator can change or delete it.",
       "back": "Back",
       "problem": "Problem",
       "responsible": "Responsible",
@@ -177,6 +195,7 @@
       "date": "Date",
       "from": "From",
       "to": "To",
+      "invalidTimeRange": "Start time must be earlier than end time.",
       "activityDescription": "Activity description",
       "addWorkLogAction": "Add work log",
       "materialUsage": "Material usage",
@@ -217,6 +236,12 @@
   "usersPage": {
     "title": "Users",
     "newUser": "New user",
+    "openRoles": "Roles",
+    "backToUsers": "Back to users",
+    "sections": {
+      "users": "Users",
+      "roles": "Roles"
+    },
     "searchPlaceholder": "Search...",
     "table": {
       "name": "Name",
@@ -230,16 +255,85 @@
     "loading": "Loading...",
     "roles": {
       "admin": "Admin",
-      "user": "User"
+      "office": "Office",
+      "technician": "Technician",
+      "custom": "Custom"
     },
     "permissions": {
       "all": "All",
       "selected": "{{count}} selected",
-      "title": "Permissions"
+      "title": "Permissions",
+      "inheritedAll": "This role inherits full platform access.",
+      "inheritedCount": "This role grants {{count}} permissions."
+    },
+    "permissionLabels": {
+      "offers": {
+        "read_all": "View all offers",
+        "read_own": "View own offers",
+        "edit_own": "Edit own offers",
+        "edit_all": "Edit all offers"
+      },
+      "clients": {
+        "read": "View clients",
+        "manage": "Manage clients"
+      },
+      "materials": {
+        "read": "View materials",
+        "read_operational": "View operational material data",
+        "read_commercial": "View commercial material data",
+        "manage": "Manage materials"
+      },
+      "labor_rates": {
+        "read": "View labor rates"
+      },
+      "transport_rates": {
+        "read": "View transport rates"
+      },
+      "billing_projects": {
+        "read_operational": "View operational billing project data",
+        "read_commercial": "View commercial billing project data"
+      },
+      "service_requests": {
+        "read_all": "View all service requests",
+        "read_assigned": "View assigned service requests",
+        "create": "Create service requests",
+        "assign": "Assign service requests",
+        "accept": "Accept service requests",
+        "reject": "Reject service requests",
+        "edit": "Edit service requests",
+        "close": "Close service requests"
+      },
+      "work_logs": {
+        "manage": "Manage work logs"
+      },
+      "material_usages": {
+        "manage": "Manage material usage"
+      },
+      "warehouses": {
+        "manage": "Manage warehouses"
+      },
+      "equipment": {
+        "manage": "Manage equipment"
+      },
+      "settings": {
+        "manage": "Manage settings"
+      },
+      "users": {
+        "manage": "Manage users"
+      }
     },
     "statusValues": {
       "active": "Active",
       "inactive": "Inactive"
+    },
+    "rolesSection": {
+      "title": "Roles",
+      "subtitle": "Define reusable role bundles and assign them to users.",
+      "newRole": "New role",
+      "systemRole": "System role",
+      "noDescription": "No description provided.",
+      "empty": "No roles found yet.",
+      "permissionCount": "{{count}} permissions"
     },
     "dialog": {
       "editTitle": "Edit user",
@@ -252,13 +346,31 @@
       "newPasswordOptional": "New password (optional)",
       "password": "Password",
       "passwordRequired": "Password is required",
-      "role": "Role",
+      "assignedRole": "Assigned role",
+      "roleRequired": "Role is required",
+      "roleHelp": "Permissions are inherited from the selected role.",
       "active": "Active",
       "cancel": "Cancel",
       "save": "Save",
       "create": "Create",
       "createFailed": "Failed to create user",
       "updateFailed": "Failed to update user"
+    },
+    "roleDialog": {
+      "createTitle": "Create role",
+      "editTitle": "Edit role",
+      "code": "Role code",
+      "codeRequired": "Role code is required",
+      "name": "Role name",
+      "nameRequired": "Role name is required",
+      "description": "Description",
+      "baseRole": "Base role",
+      "active": "Active",
+      "confirmDelete": "Are you sure you want to delete the role \"{{name}}\"?",
+      "adminHasAllPermissions": "Administrator roles always receive all permissions.",
+      "createFailed": "Failed to create role",
+      "updateFailed": "Failed to update role",
+      "deleteFailed": "Failed to delete role"
     },
     "noPermission": "You do not have permission to manage users."
   },
@@ -278,29 +390,99 @@
     "clientNumber": "Client No.",
     "projectNumber": "Site reference",
     "projectNumberLegacy": "Legacy project reference",
-    "projectNumberLegacyHint": "ERP project numbers are managed from Client details > Billing projects. This field remains only for legacy compatibility.",
+    "projectNumberLegacyHint": "ERP project numbers are managed from Client details > Billing and service projects. This field remains only for legacy compatibility.",
     "siteCode": "Site / branch code",
     "siteName": "Site / branch name",
     "siteCity": "Site city",
     "siteAddress": "Site address",
     "sites": "Sites / branches",
+    "siteRequests": "Requests by site",
+    "siteRequestsHint": "Review current and recent service requests for each site.",
+    "noSiteRequestPermission": "Your current account does not have permission to view site requests.",
+    "noSiteRequests": "No service requests for this site yet.",
+    "noRecentSiteRequests": "No completed requests for this site yet.",
+    "currentRequests": "Current requests",
+    "recentRequests": "Recent requests",
+    "currentRequestsCount": "{{count}} current",
+    "recentRequestsCount": "{{count}} recent",
+    "viewAllSiteRequests": "Open all requests",
+    "relatedBillingProjects": "Related billing projects",
+    "relatedBillingProjectsCount": "{{count}} billing projects",
+    "equipment": "Service equipment",
+    "siteEquipmentHint": "Track the installed service equipment for this site, update individual records, or import them from a spreadsheet.",
+    "equipmentCount": "{{count}} assets",
+    "activeEquipmentCount": "{{count}} active",
+    "addEquipment": "Add equipment",
+    "editEquipment": "Edit equipment",
+    "importEquipment": "Import spreadsheet",
+    "equipmentType": "Equipment type",
+    "equipmentTypeRequired": "Equipment type is required",
+    "manufacturer": "Manufacturer",
+    "model": "Model",
+    "serialNumber": "Serial number",
+    "assetTag": "Asset tag",
+    "locationNote": "Location",
+    "refrigerant": "Refrigerant",
+    "requestOrigin": "From request",
+    "noEquipment": "No equipment has been added for this site yet.",
+    "noEquipmentPermission": "Your account does not have permission to manage equipment records.",
+    "equipmentLoadFailed": "Equipment records could not be loaded.",
+    "equipmentSaved": "Equipment record saved successfully.",
+    "equipmentSaveFailed": "Equipment record could not be saved.",
+    "backToClient": "Back to client",
+    "siteNotFound": "Site not found",
     "details": "Details",
     "noSites": "No sites added",
     "salutationName": "Salutation name",
     "addSite": "Add site",
     "editSite": "Edit site",
     "confirmDeleteSite": "Are you sure you want to delete this site?",
-    "billingProjects": "Billing projects",
-    "addBillingProject": "Add billing project",
-    "billingProjectsSummary": "Billing projects",
-    "defaultBillingProject": "Default billing project",
-    "billingProjectsHint": "Use billing projects as the authoritative ERP, service type, and payment mapping for service requests.",
-    "noBillingProjects": "No billing projects",
+    "billingProjects": "Billing and service projects",
+    "addBillingProject": "Add billing and service project",
+    "billingProjectsSummary": "Billing and service projects",
+    "defaultBillingProject": "Default billing and service project",
+    "billingProjectsHint": "Use billing and service projects as the authoritative ERP, service, and payment mapping for service requests.",
+    "noBillingProjects": "No billing and service projects",
     "allSites": "All sites",
     "activeLabel": "Active",
     "inactiveLabel": "Inactive",
     "defaultLabel": "Default",
-    "statusLabel": "Status"
+    "statusLabel": "Status",
+    "projectYear": "Year",
+    "description": "Description",
+    "regularLaborRate": "Standard labor rate",
+    "transportRate": "Transport rate",
+    "validFrom": "Valid from",
+    "validTo": "Valid to"
+  },
+  "equipmentImport": {
+    "title": "Equipment import",
+    "subtitle": "Import equipment for {{site}}",
+    "subtitleFallback": "Import equipment from CSV or Excel",
+    "optionsTitle": "Import options",
+    "upload": "Upload CSV/XLSX",
+    "selectedFile": "Selected file",
+    "import": "Import",
+    "previewTitle": "Preview data",
+    "mappingTitle": "Column mapping",
+    "noColumn": "No column selected",
+    "noFile": "No file selected.",
+    "noRowsSelected": "Select at least one row to import.",
+    "missingRequired": "Missing required fields: {{fields}}",
+    "previewError": "Preview failed",
+    "previewLoading": "Loading preview...",
+    "importError": "Import failed",
+    "firstRowHeader": "First row is a header",
+    "duplicateStrategyTitle": "When matching equipment already exists",
+    "modeSkip": "Skip matching rows",
+    "modeUpsert": "Update matching rows",
+    "modeError": "Stop with error and roll back all changes",
+    "selectAll": "Select all",
+    "clearSelection": "Clear selection",
+    "selectedRowsCount": "Selected rows: {{selected}} / {{total}}",
+    "importSummary": "Imported/updated: {{imported}}, skipped: {{skipped}}, errors: {{errors}}",
+    "rolledBack": "Import stopped and all changes were rolled back.",
+    "noPermission": "You do not have permission to import equipment."
   },
   "settings": {
     "title": "Settings",
@@ -320,5 +502,52 @@
     "accepted": "Accepted",
     "rejected": "Rejected",
     "archived": "Archived"
+  },
+  "app": {
+    "brandName": "Service Platform",
+    "serverConnectionError": "Server connection error"
+  },
+  "auth": {
+    "loginError": "Sign in failed",
+    "serverConnectionError": "Cannot reach the server. Check the address and network access.",
+    "forgotPassword": "Forgot password?",
+    "loginWelcome": "Welcome back",
+    "loginContinue": "Sign in to continue",
+    "loginBrandHeadline": "Offer management",
+    "loginBrandDescription": "Create, manage, and send offers faster. Track statuses and generate PDF documents in a single flow.",
+    "passwordResetTitle": "Reset password",
+    "passwordResetSubtitle": "Enter your email and we will send you a password reset link.",
+    "passwordResetSendLink": "Send link",
+    "passwordResetBackToLogin": "Back to sign in",
+    "passwordResetEmailRequired": "Email is required",
+    "passwordResetRequestSuccess": "If the email exists, you will receive a reset link.",
+    "passwordResetRequestError": "Something went wrong. Please try again.",
+    "resetPasswordTitle": "Set a new password",
+    "resetPasswordSubtitle": "Enter your new password.",
+    "resetPasswordNew": "New password",
+    "resetPasswordConfirm": "Confirm password",
+    "resetPasswordMinLength": "Minimum 6 characters",
+    "resetPasswordMismatch": "Passwords must match",
+    "resetPasswordRequired": "This field is required",
+    "resetPasswordSubmit": "Update password",
+    "resetPasswordSuccess": "Password updated successfully.",
+    "resetPasswordMissingToken": "Missing valid password reset token.",
+    "resetPasswordError": "Something went wrong. Please try again.",
+    "initialSetupTitle": "Initial setup",
+    "initialSetupSubtitle": "No users were found. Please create the first administrator account.",
+    "initialSetupSuccessTitle": "Ready!",
+    "initialSetupSuccessSubtitle": "The first administrator account was created.",
+    "initialSetupRedirecting": "Redirecting to the sign in page...",
+    "initialSetupCreateAdmin": "Create administrator",
+    "fullName": "Full name",
+    "userCode": "User code",
+    "userCodeHint": "Short code for offer numbers, for example ADMIN or TST",
+    "emailRequired": "Email is required",
+    "fullNameRequired": "Full name is required",
+    "userCodeRequired": "User code is required",
+    "userCodeMin": "Minimum 2 characters",
+    "userCodeMax": "Maximum 10 characters",
+    "passwordRequired": "Password is required",
+    "passwordMin": "Minimum 6 characters"
   }
 }

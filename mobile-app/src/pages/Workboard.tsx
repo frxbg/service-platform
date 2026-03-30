@@ -7,6 +7,7 @@ import {
   Button,
   Card,
   CardContent,
+  Chip,
   CircularProgress,
   MenuItem,
   Snackbar,
@@ -35,6 +36,7 @@ export default function WorkboardPage() {
   const [clientFilter, setClientFilter] = useState('');
   const [cityFilter, setCityFilter] = useState('');
   const [siteFilter, setSiteFilter] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const workboardQuery = useQuery({
     queryKey: ['mobile-workboard'],
@@ -178,6 +180,7 @@ export default function WorkboardPage() {
     () => Array.from(new Set(allItems.map((item) => item.status))).sort(),
     [allItems],
   );
+  const activeFilterCount = [statusFilter, clientFilter, cityFilter, siteFilter].filter(Boolean).length;
 
   return (
     <MobileLayout title={t('navigation.requests')}>
@@ -224,68 +227,106 @@ export default function WorkboardPage() {
           <ToggleButton value="all">{t('workboard.viewAll')}</ToggleButton>
         </ToggleButtonGroup>
 
-        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-          <TextField
-            select
-            label={t('workboard.filterStatus')}
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-            sx={{ minWidth: 160, flex: '1 1 160px' }}
-          >
-            <MenuItem value="">{t('workboard.allStatuses')}</MenuItem>
-            {statusOptions.map((status) => (
-              <MenuItem key={status} value={status}>
-                {status}
-              </MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            select
-            label={t('workboard.filterClient')}
-            value={clientFilter}
-            onChange={(event) => setClientFilter(event.target.value)}
-            sx={{ minWidth: 180, flex: '1 1 180px' }}
-          >
-            <MenuItem value="">{t('workboard.allClients')}</MenuItem>
-            {clientOptions.map(([id, name]) => (
-              <MenuItem key={id} value={id}>
-                {name}
-              </MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            select
-            label={t('workboard.filterCity')}
-            value={cityFilter}
-            onChange={(event) => setCityFilter(event.target.value)}
-            sx={{ minWidth: 150, flex: '1 1 150px' }}
-          >
-            <MenuItem value="">{t('workboard.allCities')}</MenuItem>
-            {cityOptions.map((city) => (
-              <MenuItem key={city} value={city}>
-                {city}
-              </MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            select
-            label={t('workboard.filterSite')}
-            value={siteFilter}
-            onChange={(event) => setSiteFilter(event.target.value)}
-            sx={{ minWidth: 180, flex: '1 1 180px' }}
-          >
-            <MenuItem value="">{t('workboard.allSites')}</MenuItem>
-            {siteOptions.map(([id, name]) => (
-              <MenuItem key={id} value={id}>
-                {name}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Stack>
+        <Stack spacing={1.25}>
+          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+            <Button variant="outlined" onClick={() => setFiltersOpen((current) => !current)}>
+              {filtersOpen ? t('workboard.hideFilters') : t('workboard.showFilters')}
+            </Button>
+            <Button variant="outlined" onClick={() => void workboardQuery.refetch()}>
+              {t('workboard.refresh')}
+            </Button>
+            {activeFilterCount ? (
+              <Chip
+                color="primary"
+                variant="outlined"
+                label={t('workboard.activeFilters', { count: activeFilterCount })}
+              />
+            ) : null}
+            {activeFilterCount ? (
+              <Button
+                variant="text"
+                onClick={() => {
+                  setStatusFilter('');
+                  setClientFilter('');
+                  setCityFilter('');
+                  setSiteFilter('');
+                }}
+              >
+                {t('common.clear')}
+              </Button>
+            ) : null}
+          </Stack>
 
-        <Button variant="outlined" onClick={() => void workboardQuery.refetch()}>
-          {t('workboard.refresh')}
-        </Button>
+          {filtersOpen ? (
+            <Card>
+              <CardContent>
+                <Stack spacing={1.5}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                    {t('workboard.filtersTitle')}
+                  </Typography>
+                  <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                    <TextField
+                      select
+                      label={t('workboard.filterStatus')}
+                      value={statusFilter}
+                      onChange={(event) => setStatusFilter(event.target.value)}
+                      sx={{ minWidth: 160, flex: '1 1 160px' }}
+                    >
+                      <MenuItem value="">{t('workboard.allStatuses')}</MenuItem>
+                      {statusOptions.map((status) => (
+                        <MenuItem key={status} value={status}>
+                          {status}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                    <TextField
+                      select
+                      label={t('workboard.filterClient')}
+                      value={clientFilter}
+                      onChange={(event) => setClientFilter(event.target.value)}
+                      sx={{ minWidth: 180, flex: '1 1 180px' }}
+                    >
+                      <MenuItem value="">{t('workboard.allClients')}</MenuItem>
+                      {clientOptions.map(([id, name]) => (
+                        <MenuItem key={id} value={id}>
+                          {name}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                    <TextField
+                      select
+                      label={t('workboard.filterCity')}
+                      value={cityFilter}
+                      onChange={(event) => setCityFilter(event.target.value)}
+                      sx={{ minWidth: 150, flex: '1 1 150px' }}
+                    >
+                      <MenuItem value="">{t('workboard.allCities')}</MenuItem>
+                      {cityOptions.map((city) => (
+                        <MenuItem key={city} value={city}>
+                          {city}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                    <TextField
+                      select
+                      label={t('workboard.filterSite')}
+                      value={siteFilter}
+                      onChange={(event) => setSiteFilter(event.target.value)}
+                      sx={{ minWidth: 180, flex: '1 1 180px' }}
+                    >
+                      <MenuItem value="">{t('workboard.allSites')}</MenuItem>
+                      {siteOptions.map(([id, name]) => (
+                        <MenuItem key={id} value={id}>
+                          {name}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Stack>
+                </Stack>
+              </CardContent>
+            </Card>
+          ) : null}
+        </Stack>
 
         {workboardQuery.isLoading ? (
           <Box sx={{ display: 'grid', placeItems: 'center', py: 6, gap: 2 }}>

@@ -169,6 +169,50 @@ class WorkLog(BaseModel):
         from_attributes = True
 
 
+class TravelLogStartCreate(BaseModel):
+    started_at: Optional[datetime] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+
+class TravelLogStopUpdate(BaseModel):
+    ended_at: Optional[datetime] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+
+class TravelLogManualUpdate(BaseModel):
+    final_duration_minutes: Optional[int] = Field(default=None, ge=0)
+    final_distance_km: Optional[Decimal] = Field(default=None, ge=0)
+    manual_adjustment_note: Optional[str] = None
+
+
+class TravelLog(BaseModel):
+    id: UUID
+    request_id: UUID
+    started_at: datetime
+    ended_at: Optional[datetime] = None
+    estimated_duration_minutes: Optional[int] = None
+    final_duration_minutes: Optional[int] = None
+    estimated_distance_km: Optional[Decimal] = None
+    final_distance_km: Optional[Decimal] = None
+    start_latitude: Optional[Decimal] = None
+    start_longitude: Optional[Decimal] = None
+    end_latitude: Optional[Decimal] = None
+    end_longitude: Optional[Decimal] = None
+    is_gps_estimated: bool = False
+    is_active: bool = False
+    has_manual_adjustments: bool = False
+    manual_adjustment_note: Optional[str] = None
+    technician_user: ReferenceUser
+    created_by_user: ReferenceUser
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class MaterialUsageCreate(BaseModel):
     request_id: UUID
     material_id: UUID
@@ -210,6 +254,18 @@ class EquipmentAssetCreate(BaseModel):
     is_active: bool = True
 
 
+class EquipmentAssetUpdate(BaseModel):
+    equipment_type: Optional[str] = None
+    manufacturer: Optional[str] = None
+    model: Optional[str] = None
+    serial_number: Optional[str] = None
+    asset_tag: Optional[str] = None
+    location_note: Optional[str] = None
+    refrigerant: Optional[str] = None
+    notes: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
 class EquipmentAsset(BaseModel):
     id: UUID
     request_id: Optional[UUID] = None
@@ -234,7 +290,7 @@ class ServiceRequestCreate(BaseModel):
     source: ServiceRequestSource = ServiceRequestSource.OTHER
     client_id: UUID
     site_id: UUID
-    billing_project_id: UUID
+    billing_project_id: Optional[UUID] = None
     responsible_user_id: Optional[UUID] = None
     reported_problem: str
     request_reason_code: Optional[str] = None
@@ -270,6 +326,7 @@ class ServiceRequestListItem(BaseModel):
     assigned_technicians: list[str] = Field(default_factory=list)
     reported_at: datetime
     created_at: datetime
+    is_locked: bool = False
 
 
 class ServiceRequestDashboardSummary(BaseModel):
@@ -308,8 +365,12 @@ class ServiceRequest(BaseModel):
     payment_mode_snapshot: Optional[BillingPaymentMode | str] = None
     notes_internal: Optional[str] = None
     notes_client: Optional[str] = None
+    is_locked: bool = False
+    can_edit: bool = True
+    can_delete: bool = False
     assignments: list[ServiceAssignment] = Field(default_factory=list)
     work_logs: list[WorkLog] = Field(default_factory=list)
+    travel_logs: list[TravelLog] = Field(default_factory=list)
     material_usages: list[MaterialUsage] = Field(default_factory=list)
     equipment_assets: list[EquipmentAsset] = Field(default_factory=list)
 

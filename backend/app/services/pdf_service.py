@@ -199,7 +199,7 @@ class PDFService:
 
         context = {
             "protocol": protocol,
-            "company_name": getattr(company_settings, "company_name", "") or "PyOffers",
+            "company_name": getattr(company_settings, "company_name", "") or "Service Platform",
         }
 
         template = self.env.get_template("service_protocol_template.html")
