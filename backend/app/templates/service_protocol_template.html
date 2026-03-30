@@ -121,7 +121,9 @@
                 <td>
                     <div class="signature-label">Technician</div>
                     {% if technician_signature %}
+                        {% if technician_signature.signature_image_data %}
                         <img class="signature-image" src="{{ technician_signature.signature_image_data }}" alt="Technician signature" />
+                        {% endif %}
                         <div>{{ technician_signature.signer_name }}</div>
                         <div class="signature-meta">{{ technician_signature.signed_at }}</div>
                     {% else %}
@@ -131,9 +133,19 @@
                 <td>
                     <div class="signature-label">Client</div>
                     {% if client_signature %}
+                        {% if client_signature.is_refused %}
+                        <div><strong>Client signature refused</strong></div>
+                        {% if client_signature.refusal_reason %}
+                        <div class="signature-meta">{{ client_signature.refusal_reason }}</div>
+                        {% endif %}
+                        {% elif client_signature.signature_image_data %}
                         <img class="signature-image" src="{{ client_signature.signature_image_data }}" alt="Client signature" />
+                        {% endif %}
                         <div>{{ client_signature.signer_name }}</div>
                         <div class="signature-meta">{{ client_signature.signed_at }}</div>
+                        {% if client_signature.client_remark %}
+                        <div class="signature-meta"><strong>Remark:</strong> {{ client_signature.client_remark }}</div>
+                        {% endif %}
                     {% else %}
                         <div class="muted">No client signature recorded.</div>
                     {% endif %}

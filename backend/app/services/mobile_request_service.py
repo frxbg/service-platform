@@ -46,6 +46,10 @@ COMPLETABLE_REQUEST_STATUSES = {
 
 class MobileRequestService:
     @staticmethod
+    def _has_work_logs(request: models.ServiceRequest) -> bool:
+        return bool(request.work_logs)
+
+    @staticmethod
     def _to_decimal_coordinate(value: Optional[float]) -> Optional[Decimal]:
         if value is None:
             return None
@@ -145,18 +149,82 @@ class MobileRequestService:
                 "signer_name": signature.signer_name,
                 "signed_at": signature.signed_at,
                 "signature_image_data": signature.signature_image_data,
+                "is_refused": signature.is_refused,
+                "refusal_reason": signature.refusal_reason,
+                "client_remark": signature.client_remark,
             }
             for signature in active_signatures
         ]
 
     @staticmethod
     def _has_required_signatures(request: models.ServiceRequest) -> bool:
-        roles = {
-            signature.signer_role.value if hasattr(signature.signer_role, "value") else str(signature.signer_role)
-            for signature in (request.signatures or [])
-            if signature.is_active
-        }
-        return {"technician", "client"}.issubset(roles)
+        technician_signed = False
+        client_confirmed = False
+
+        for signature in (request.signatures or []):
+            if not signature.is_active:
+                continue
+            role = signature.signer_role.value if hasattr(signature.signer_role, "value") else str(signature.signer_role)
+            if role == "technician" and not signature.is_refused:
+                technician_signed = True
+            if role == "client":
+                client_confirmed = True
+
+        return technician_signed and client_confirmed
+
+    @staticmethod
+    def _ensure_work_started(request: models.ServiceRequest) -> None:
+        if not MobileRequestService._has_work_logs(request):
+            raise HTTPException(
+                status_code=400,
+                detail="Add at least one work log before continuing with materials, signatures, or completion",
+            )
+
+    @staticmethod
+    def _stop_active_travel_log(
+        db: Session,
+        *,
+        request: models.ServiceRequest,
+        current_user: models.User,
+        ended_at: Optional[datetime] = None,
+        end_latitude: Optional[Decimal] = None,
+        end_longitude: Optional[Decimal] = None,
+        audit_action: str = "service_request.travel_stopped_mobile",
+        audit_details: Optional[dict] = None,
+    ) -> Optional[models.ServiceTravelLog]:
+        travel_log = MobileRequestService._get_my_active_travel_log(request, current_user)
+        if not travel_log:
+            return None
+
+        resolved_ended_at = ended_at or datetime.utcnow()
+        if resolved_ended_at < travel_log.started_at:
+            resolved_ended_at = travel_log.started_at
+
+        travel_log.ended_at = resolved_ended_at
+        travel_log.end_latitude = end_latitude
+        travel_log.end_longitude = end_longitude
+        estimated_duration_minutes = max(int((resolved_ended_at - travel_log.started_at).total_seconds() // 60), 0)
+        estimated_distance_km = MobileRequestService._estimate_distance_km(
+            travel_log.start_latitude,
+            travel_log.start_longitude,
+            travel_log.end_latitude,
+            travel_log.end_longitude,
+        )
+        travel_log.estimated_duration_minutes = estimated_duration_minutes
+        travel_log.final_duration_minutes = estimated_duration_minutes
+        travel_log.estimated_distance_km = estimated_distance_km
+        travel_log.final_distance_km = estimated_distance_km
+        travel_log.is_gps_estimated = estimated_distance_km is not None
+        db.add(travel_log)
+        AuditService.log_event(
+            db,
+            action=audit_action,
+            entity_type="service_travel_log",
+            entity_id=str(travel_log.id),
+            actor_user_id=current_user.id,
+            details={"request_id": str(request.id), **(audit_details or {})},
+        )
+        return travel_log
 
     @staticmethod
     def _require_permissions(
@@ -420,7 +488,8 @@ class MobileRequestService:
             "material_usages": base["material_usages"],
             "equipment_assets": base["equipment_assets"],
             "signatures": MobileRequestService._serialize_signatures(request),
-            "can_complete": MobileRequestService._has_required_signatures(request)
+            "can_complete": MobileRequestService._has_work_logs(request)
+            and MobileRequestService._has_required_signatures(request)
             and request.status in COMPLETABLE_REQUEST_STATUSES,
         }
 
@@ -738,6 +807,14 @@ class MobileRequestService:
         if not assignment:
             raise HTTPException(status_code=400, detail="You do not have an active assignment for this request")
 
+        MobileRequestService._stop_active_travel_log(
+            db,
+            request=request,
+            current_user=current_user,
+            audit_action="service_request.travel_auto_stopped_before_work_log",
+            audit_details={"source": "mobile_work_log"},
+        )
+
         ServiceRequestService.add_work_log(
             db,
             payload=schemas.service_request.WorkLogCreate(
@@ -845,29 +922,13 @@ class MobileRequestService:
         if ended_at < travel_log.started_at:
             raise HTTPException(status_code=400, detail="Travel end time cannot be earlier than the start time")
 
-        travel_log.ended_at = ended_at
-        travel_log.end_latitude = MobileRequestService._to_decimal_coordinate(payload.latitude)
-        travel_log.end_longitude = MobileRequestService._to_decimal_coordinate(payload.longitude)
-        estimated_duration_minutes = max(int((ended_at - travel_log.started_at).total_seconds() // 60), 0)
-        estimated_distance_km = MobileRequestService._estimate_distance_km(
-            travel_log.start_latitude,
-            travel_log.start_longitude,
-            travel_log.end_latitude,
-            travel_log.end_longitude,
-        )
-        travel_log.estimated_duration_minutes = estimated_duration_minutes
-        travel_log.final_duration_minutes = estimated_duration_minutes
-        travel_log.estimated_distance_km = estimated_distance_km
-        travel_log.final_distance_km = estimated_distance_km
-        travel_log.is_gps_estimated = estimated_distance_km is not None
-        db.add(travel_log)
-        AuditService.log_event(
+        MobileRequestService._stop_active_travel_log(
             db,
-            action="service_request.travel_stopped_mobile",
-            entity_type="service_travel_log",
-            entity_id=str(travel_log.id),
-            actor_user_id=current_user.id,
-            details={"request_id": str(request.id)},
+            request=request,
+            current_user=current_user,
+            ended_at=ended_at,
+            end_latitude=MobileRequestService._to_decimal_coordinate(payload.latitude),
+            end_longitude=MobileRequestService._to_decimal_coordinate(payload.longitude),
         )
         db.commit()
         return MobileRequestService.get_request_detail(db, request_id=request_id, current_user=current_user)
@@ -946,6 +1007,7 @@ class MobileRequestService:
         assignment = MobileRequestService._get_my_assignment(request, current_user)
         if not assignment:
             raise HTTPException(status_code=400, detail="You do not have an active assignment for this request")
+        MobileRequestService._ensure_work_started(request)
 
         ServiceRequestService.add_material_usage(
             db,
@@ -985,6 +1047,7 @@ class MobileRequestService:
         assignment = MobileRequestService._get_my_assignment(request, current_user)
         if not assignment:
             raise HTTPException(status_code=400, detail="You do not have an active assignment for this request")
+        MobileRequestService._ensure_work_started(request)
 
         ServiceRequestService.add_equipment_asset(
             db,
@@ -1096,14 +1159,35 @@ class MobileRequestService:
         assignment = MobileRequestService._get_my_assignment(request, current_user)
         if not assignment:
             raise HTTPException(status_code=400, detail="You do not have an active assignment for this request")
-        if not payload.signature_image_data.startswith("data:image/"):
-            raise HTTPException(status_code=400, detail="Signature image must be a data URL")
+        MobileRequestService._ensure_work_started(request)
         if not payload.signer_name.strip():
             raise HTTPException(status_code=400, detail="Signer name is required")
 
         normalized_role = (
             payload.signer_role.value if hasattr(payload.signer_role, "value") else str(payload.signer_role)
         )
+        if normalized_role == "client" and not any(
+            (
+                (signature.signer_role.value if hasattr(signature.signer_role, "value") else str(signature.signer_role))
+                == "technician"
+                and signature.is_active
+                and not signature.is_refused
+            )
+            for signature in (request.signatures or [])
+        ):
+            raise HTTPException(status_code=400, detail="Technician signature is required before client signature")
+        if payload.is_refused and normalized_role != "client":
+            raise HTTPException(status_code=400, detail="Only client signatures can be marked as refused")
+
+        if payload.is_refused:
+            signature_image_data = None
+            signature_strokes = None
+        else:
+            if not payload.signature_image_data or not payload.signature_image_data.startswith("data:image/"):
+                raise HTTPException(status_code=400, detail="Signature image must be a data URL")
+            signature_image_data = payload.signature_image_data
+            signature_strokes = payload.signature_strokes
+
         for signature in request.signatures or []:
             signature_role = signature.signer_role.value if hasattr(signature.signer_role, "value") else str(signature.signer_role)
             if signature.is_active and signature_role == normalized_role:
@@ -1117,8 +1201,11 @@ class MobileRequestService:
             signer_role=payload.signer_role,
             signer_name=payload.signer_name.strip(),
             signed_by_user_id=current_user.id if normalized_role == "technician" else None,
-            signature_image_data=payload.signature_image_data,
-            signature_strokes_json=payload.signature_strokes,
+            signature_image_data=signature_image_data,
+            signature_strokes_json=signature_strokes,
+            is_refused=payload.is_refused,
+            refusal_reason=(payload.refusal_reason or "").strip() or None,
+            client_remark=(payload.client_remark or "").strip() or None,
             ip_address=ip_address,
             device_info=payload.device_info,
         )
@@ -1130,7 +1217,11 @@ class MobileRequestService:
             entity_type="service_request",
             entity_id=str(request.id),
             actor_user_id=current_user.id,
-            details={"signature_id": str(signature.id), "signer_role": normalized_role},
+            details={
+                "signature_id": str(signature.id),
+                "signer_role": normalized_role,
+                "is_refused": payload.is_refused,
+            },
         )
         db.commit()
         return MobileRequestService.get_request_detail(db, request_id=request_id, current_user=current_user)
@@ -1156,6 +1247,7 @@ class MobileRequestService:
         assignment = MobileRequestService._get_my_assignment(request, current_user)
         if not assignment:
             raise HTTPException(status_code=400, detail="You do not have an active assignment for this request")
+        MobileRequestService._ensure_work_started(request)
         if request.status not in COMPLETABLE_REQUEST_STATUSES:
             raise HTTPException(status_code=400, detail="This request cannot be completed in its current status")
         if not MobileRequestService._has_required_signatures(request):

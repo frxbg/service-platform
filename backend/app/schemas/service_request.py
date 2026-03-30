@@ -399,6 +399,9 @@ class ServiceProtocolSignatureSummary(BaseModel):
     signer_name: str
     signed_at: datetime
     signature_image_data: Optional[str] = None
+    is_refused: bool = False
+    refusal_reason: Optional[str] = None
+    client_remark: Optional[str] = None
 
 
 class ServiceProtocolPreview(BaseModel):

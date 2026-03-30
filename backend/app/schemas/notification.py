@@ -11,7 +11,7 @@ class UserNotification(BaseModel):
     title: str
     message: str
     entity_type: Optional[str] = None
-    entity_id: Optional[UUID] = None
+    entity_id: Optional[str] = None
     is_read: bool
     created_at: datetime
     read_at: Optional[datetime] = None

@@ -66,7 +66,10 @@ class MobileRequestSignature(BaseModel):
     signer_role: ServiceProtocolSignatureRole
     signer_name: str
     signed_at: datetime
-    signature_image_data: str
+    signature_image_data: Optional[str] = None
+    is_refused: bool = False
+    refusal_reason: Optional[str] = None
+    client_remark: Optional[str] = None
 
 
 class MobileRequestDetail(MobileRequestListItem):
@@ -197,6 +200,9 @@ class MobileEquipmentCreate(BaseModel):
 class MobileSignatureCreate(BaseModel):
     signer_role: ServiceProtocolSignatureRole
     signer_name: str
-    signature_image_data: str
+    signature_image_data: Optional[str] = None
     signature_strokes: Optional[dict] = None
     device_info: Optional[str] = None
+    is_refused: bool = False
+    refusal_reason: Optional[str] = None
+    client_remark: Optional[str] = None

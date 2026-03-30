@@ -68,6 +68,9 @@ class ServiceProtocolService:
                 "signer_name": signature.signer_name,
                 "signed_at": signature.signed_at,
                 "signature_image_data": signature.signature_image_data,
+                "is_refused": signature.is_refused,
+                "refusal_reason": signature.refusal_reason,
+                "client_remark": signature.client_remark,
             }
             for signature in sorted(
                 [item for item in (request.signatures or []) if item.is_active],

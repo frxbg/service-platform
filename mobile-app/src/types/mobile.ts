@@ -175,7 +175,10 @@ export interface MobileRequestDetail extends MobileRequestListItem {
     signer_role: 'technician' | 'client';
     signer_name: string;
     signed_at: string;
-    signature_image_data: string;
+    signature_image_data?: string | null;
+    is_refused: boolean;
+    refusal_reason?: string | null;
+    client_remark?: string | null;
   }>;
   can_complete: boolean;
 }

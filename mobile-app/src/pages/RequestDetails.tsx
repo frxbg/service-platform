@@ -108,6 +108,10 @@ interface SignatureDraft {
   signer_name: string;
   signature_image_data: string | null;
   has_signature: boolean;
+  is_refused: boolean;
+  refusal_reason: string;
+  has_client_remark: boolean;
+  client_remark: string;
 }
 
 type TravelLogEntry = MobileRequestDetail['travel_logs'][number];
@@ -157,6 +161,24 @@ function createEmptySignatureDraft(role: SignatureRole | null = null): Signature
     signer_name: '',
     signature_image_data: null,
     has_signature: false,
+    is_refused: false,
+    refusal_reason: '',
+    has_client_remark: false,
+    client_remark: '',
+  };
+}
+
+function withSignatureDraftDefaults(draft?: Partial<SignatureDraft> | null): SignatureDraft {
+  return {
+    ...createEmptySignatureDraft(draft?.role || null),
+    ...draft,
+    signer_name: draft?.signer_name || '',
+    signature_image_data: draft?.signature_image_data || null,
+    has_signature: Boolean(draft?.has_signature && draft?.signature_image_data),
+    is_refused: Boolean(draft?.is_refused),
+    refusal_reason: draft?.refusal_reason || '',
+    has_client_remark: Boolean(draft?.has_client_remark || draft?.client_remark),
+    client_remark: draft?.client_remark || '',
   };
 }
 
@@ -192,7 +214,16 @@ function isMeaningfulEquipmentDraft(draft: EquipmentOfflineDraft) {
 }
 
 function isMeaningfulSignatureDraft(draft: SignatureDraft) {
-  return Boolean(draft.role || draft.signer_name.trim() || draft.has_signature || draft.signature_image_data);
+  return Boolean(
+    draft.role ||
+      draft.signer_name.trim() ||
+      draft.has_signature ||
+      draft.signature_image_data ||
+      draft.is_refused ||
+      draft.refusal_reason.trim() ||
+      draft.has_client_remark ||
+      draft.client_remark.trim(),
+  );
 }
 
 function createTravelReviewDraft(log: TravelLogEntry): TravelReviewDraft {
@@ -547,22 +578,38 @@ export default function RequestDetailsPage() {
           signer_role: role,
           signer_name: signatureDraft.signer_name,
           signature_image_data: signatureDraft.signature_image_data,
+          is_refused: signatureDraft.is_refused,
+          refusal_reason: signatureDraft.refusal_reason || undefined,
+          client_remark: signatureDraft.has_client_remark ? signatureDraft.client_remark : undefined,
           device_info: navigator.userAgent,
         },
       );
       return data;
     },
-    onSuccess: async () => {
-      setSignatureDialogRole(null);
-      setSignatureDraft(createEmptySignatureDraft());
+    onSuccess: async (data, role) => {
+      queryClient.setQueryData(['mobile-request', requestId], data.request);
       removeOfflineDraft('signature');
-      setToastMessage(t('requestDetails.signatureSuccess'));
+      const hasClientSignature = data.request.signatures.some((signature) => signature.signer_role === 'client');
+      if (role === 'technician' && !hasClientSignature) {
+        setSignatureDraft(
+          withSignatureDraftDefaults({
+            role: 'client',
+            signer_name: data.request.contact_name || data.request.client_name || t('forms.clientSignerDefault'),
+          }),
+        );
+        setSignatureDialogRole('client');
+        setToastMessage(t('requestDetails.signatureContinueClient'));
+      } else {
+        setSignatureDialogRole(null);
+        setSignatureDraft(createEmptySignatureDraft());
+        setToastMessage(t('requestDetails.signatureSuccess'));
+      }
       await invalidateRequestData();
     },
     onError: () => {
       persistOfflineDraft(
         'signature',
-        signatureDraft,
+        withSignatureDraftDefaults(signatureDraft),
         'sync_failed',
         t('requestDetails.signatureError'),
       );
@@ -654,7 +701,7 @@ export default function RequestDetailsPage() {
     } : createEmptyEquipmentDraft());
 
     const savedSignature = savedDrafts.signature?.payload as SignatureDraft | undefined;
-    setSignatureDraft(savedSignature || createEmptySignatureDraft());
+    setSignatureDraft(withSignatureDraftDefaults(savedSignature));
   }, [requestId]);
 
   useEffect(() => {
@@ -797,6 +844,7 @@ export default function RequestDetailsPage() {
 
     const savedSignature = offlineDrafts.signature?.payload as SignatureDraft | undefined;
     if (savedSignature?.role) {
+      setSignatureDraft(withSignatureDraftDefaults(savedSignature));
       setSignatureDialogRole(savedSignature.role);
     }
   };
@@ -839,8 +887,13 @@ export default function RequestDetailsPage() {
   };
 
   const isTerminalRequest = ['COMPLETED', 'CLOSED', 'CANCELLED'].includes(request?.status || '');
+  const hasWorkLogs = Boolean(request?.work_logs.length);
+  const hasTechnicianSignature = Boolean(signaturesByRole.technician && !signaturesByRole.technician.is_refused);
+  const hasClientSignatureStep = Boolean(signaturesByRole.client);
+  const nextSignatureRole: SignatureRole = hasTechnicianSignature ? 'client' : 'technician';
   const canReject =
     (request?.current_assignment_status === 'pending' || request?.current_assignment_status === 'accepted') &&
+    !hasWorkLogs &&
     !['IN_PROGRESS', 'WAITING_PARTS', 'WAITING_CLIENT', 'COMPLETED', 'CLOSED', 'CANCELLED'].includes(
       request?.status || '',
     );
@@ -850,11 +903,19 @@ export default function RequestDetailsPage() {
     !['IN_PROGRESS', 'COMPLETED', 'CLOSED', 'CANCELLED'].includes(request.status);
   const canAddOperationalEntries =
     request?.assigned_to_me &&
-    ['accepted', 'pending'].includes(request.current_assignment_status || '') &&
+    request.current_assignment_status === 'accepted' &&
     !isTerminalRequest;
-  const canManageTravel = Boolean(request?.assigned_to_me) && !isTerminalRequest;
-  const canCaptureSignatures = Boolean(request?.assigned_to_me) && !isTerminalRequest;
-  const canCompleteRequest = Boolean(request?.can_complete) && !isTerminalRequest;
+  const canAddPostWorkEntries = canAddOperationalEntries && hasWorkLogs;
+  const canManageTravel = Boolean(request?.assigned_to_me) && !isTerminalRequest && !hasWorkLogs;
+  const canCaptureSignatures = Boolean(request?.assigned_to_me) && !isTerminalRequest && hasWorkLogs;
+  const canCompleteRequest = Boolean(request?.can_complete) && !isTerminalRequest && hasWorkLogs;
+  const workflowStageMessage = !hasWorkLogs
+    ? t('requestDetails.postWorkActionsLocked')
+    : !hasTechnicianSignature
+      ? t('requestDetails.signTechnicianFirst')
+      : !hasClientSignatureStep
+        ? t('requestDetails.signClientNext')
+        : t('requestDetails.signatureReady');
   const activeOfflineDrafts = useMemo(
     () =>
       Object.entries(offlineDrafts).filter(
@@ -891,16 +952,24 @@ export default function RequestDetailsPage() {
   const openSignatureDialog = (role: SignatureRole) => {
     const savedSignature = offlineDrafts.signature?.payload as SignatureDraft | undefined;
     if (savedSignature?.role === role && isMeaningfulSignatureDraft(savedSignature)) {
-      setSignatureDraft(savedSignature);
+      setSignatureDraft(withSignatureDraftDefaults(savedSignature));
     } else {
-      setSignatureDraft({
-        role,
-        signer_name: signaturesByRole[role]?.signer_name || defaultSignerName(role),
-        signature_image_data: null,
-        has_signature: false,
-      });
+      setSignatureDraft(
+        withSignatureDraftDefaults({
+          role,
+          signer_name: signaturesByRole[role]?.signer_name || defaultSignerName(role),
+          client_remark: role === 'client' ? signaturesByRole.client?.client_remark || '' : '',
+          has_client_remark: role === 'client' ? Boolean(signaturesByRole.client?.client_remark) : false,
+          is_refused: role === 'client' ? Boolean(signaturesByRole.client?.is_refused) : false,
+          refusal_reason: role === 'client' ? signaturesByRole.client?.refusal_reason || '' : '',
+        }),
+      );
     }
     setSignatureDialogRole(role);
+  };
+
+  const openNextSignatureDialog = () => {
+    openSignatureDialog(nextSignatureRole);
   };
 
   const openProtocolPdf = async () => {
@@ -965,6 +1034,10 @@ export default function RequestDetailsPage() {
                 <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
                   {t('requestDetails.quickActions')}
                 </Typography>
+                <Alert severity={hasWorkLogs ? 'success' : 'info'}>{workflowStageMessage}</Alert>
+                {activeTravelLog ? (
+                  <Alert severity="warning">{t('requestDetails.workLogStopsTravel')}</Alert>
+                ) : null}
                 <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                   {request.available_to_accept || request.current_assignment_status === 'pending' ? (
                     <Button
@@ -1020,31 +1093,24 @@ export default function RequestDetailsPage() {
                       {t('requestDetails.addWorkLog')}
                     </Button>
                   ) : null}
-                  {canAddOperationalEntries ? (
+                  {canAddPostWorkEntries ? (
                     <Button variant="outlined" onClick={openMaterialDialog}>
                       {t('requestDetails.addMaterial')}
                     </Button>
                   ) : null}
-                  {canAddOperationalEntries ? (
+                  {canAddPostWorkEntries ? (
                     <Button variant="outlined" onClick={openEquipmentDialog}>
                       {t('requestDetails.addEquipment')}
                     </Button>
                   ) : null}
                   {canCaptureSignatures ? (
-                    <Button variant="outlined" onClick={() => openSignatureDialog('technician')}>
-                      {signaturesByRole.technician
-                        ? t('requestDetails.replaceSignature')
-                        : t('requestDetails.captureTechnicianSignature')}
+                    <Button variant="outlined" onClick={openNextSignatureDialog}>
+                      {hasTechnicianSignature && hasClientSignatureStep
+                        ? t('requestDetails.updateSignatureFlow')
+                        : t('requestDetails.signFlow')}
                     </Button>
                   ) : null}
-                  {canCaptureSignatures ? (
-                    <Button variant="outlined" onClick={() => openSignatureDialog('client')}>
-                      {signaturesByRole.client
-                        ? t('requestDetails.replaceClientSignature')
-                        : t('requestDetails.captureClientSignature')}
-                    </Button>
-                  ) : null}
-                  {request?.assigned_to_me ? (
+                  {hasWorkLogs && request?.assigned_to_me ? (
                     <Button
                       variant="contained"
                       color="success"
@@ -1234,10 +1300,8 @@ export default function RequestDetailsPage() {
                   {t('requestDetails.protocol')}
                 </Typography>
                 <Alert severity="info">{t('requestDetails.protocolNote')}</Alert>
-                <Alert severity={request.can_complete ? 'success' : 'warning'}>
-                  {request.can_complete
-                    ? t('requestDetails.signatureReady')
-                    : t('requestDetails.signatureMissing')}
+                <Alert severity={request.can_complete ? 'success' : hasWorkLogs ? 'warning' : 'info'}>
+                  {workflowStageMessage}
                 </Alert>
                 <Stack spacing={1.5}>
                   {(['technician', 'client'] as SignatureRole[]).map((role) => {
@@ -1272,30 +1336,37 @@ export default function RequestDetailsPage() {
                             </Typography>
                             <Chip
                               size="small"
-                              color={signature ? 'success' : 'default'}
+                              color={signature ? (signature.is_refused ? 'warning' : 'success') : 'default'}
                               label={
                                 signature
-                                  ? t('requestDetails.signatureCaptured')
+                                  ? signature.is_refused
+                                    ? t('requestDetails.signatureRefused')
+                                    : t('requestDetails.signatureCaptured')
                                   : t('requestDetails.signaturePending')
                               }
                             />
                           </Stack>
                           {signature ? (
                             <Stack spacing={1}>
-                              <Box
-                                component="img"
-                                src={signature.signature_image_data}
-                                alt={title}
-                                sx={{
-                                  width: '100%',
-                                  maxHeight: 120,
-                                  objectFit: 'contain',
-                                  border: '1px solid',
-                                  borderColor: 'divider',
-                                  borderRadius: 1.5,
-                                  bgcolor: '#ffffff',
-                                }}
-                              />
+                              {signature.signature_image_data ? (
+                                <Box
+                                  component="img"
+                                  src={signature.signature_image_data}
+                                  alt={title}
+                                  sx={{
+                                    width: '100%',
+                                    maxHeight: 120,
+                                    objectFit: 'contain',
+                                    border: '1px solid',
+                                    borderColor: 'divider',
+                                    borderRadius: 1.5,
+                                    bgcolor: '#ffffff',
+                                  }}
+                                />
+                              ) : null}
+                              {signature.is_refused ? (
+                                <Alert severity="warning">{t('requestDetails.signatureRefused')}</Alert>
+                              ) : null}
                               <Typography variant="caption" color="text.secondary" display="block">
                                 {t('requestDetails.signedBy')}: {signature.signer_name}
                               </Typography>
@@ -1306,19 +1377,22 @@ export default function RequestDetailsPage() {
                                   i18n.resolvedLanguage || i18n.language,
                                 )}
                               </Typography>
+                              {signature.refusal_reason ? (
+                                <Typography variant="caption" color="text.secondary" display="block">
+                                  {t('requestDetails.refusalReason')}: {signature.refusal_reason}
+                                </Typography>
+                              ) : null}
+                              {signature.client_remark ? (
+                                <Typography variant="caption" color="text.secondary" display="block">
+                                  {t('requestDetails.clientRemark')}: {signature.client_remark}
+                                </Typography>
+                              ) : null}
                             </Stack>
                           ) : (
                             <Typography variant="body2" color="text.secondary">
                               {t('requestDetails.signaturePending')}
                             </Typography>
                           )}
-                          {canCaptureSignatures ? (
-                            <Button variant="text" onClick={() => openSignatureDialog(role)}>
-                              {signature
-                                ? t('requestDetails.replaceSignature')
-                                : t('requestDetails.captureSignature')}
-                            </Button>
-                          ) : null}
                         </Stack>
                       </Box>
                     );
@@ -1912,7 +1986,72 @@ export default function RequestDetailsPage() {
               }
               fullWidth
             />
-            {signatureDraft.signature_image_data ? (
+            {signatureDialogRole === 'client' ? (
+              <>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={signatureDraft.is_refused}
+                      onChange={(event) =>
+                        setSignatureDraft((current) => ({
+                          ...current,
+                          is_refused: event.target.checked,
+                          signature_image_data: event.target.checked ? null : current.signature_image_data,
+                          has_signature: event.target.checked ? false : current.has_signature,
+                        }))
+                      }
+                    />
+                  }
+                  label={t('forms.signatureRefused')}
+                />
+                {signatureDraft.is_refused ? (
+                  <TextField
+                    label={t('forms.refusalReason')}
+                    multiline
+                    minRows={2}
+                    value={signatureDraft.refusal_reason}
+                    onChange={(event) =>
+                      setSignatureDraft((current) => ({
+                        ...current,
+                        refusal_reason: event.target.value,
+                      }))
+                    }
+                    fullWidth
+                  />
+                ) : null}
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={signatureDraft.has_client_remark}
+                      onChange={(event) =>
+                        setSignatureDraft((current) => ({
+                          ...current,
+                          has_client_remark: event.target.checked,
+                          client_remark: event.target.checked ? current.client_remark : '',
+                        }))
+                      }
+                    />
+                  }
+                  label={t('forms.clientRemarkToggle')}
+                />
+                {signatureDraft.has_client_remark ? (
+                  <TextField
+                    label={t('forms.clientRemark')}
+                    multiline
+                    minRows={3}
+                    value={signatureDraft.client_remark}
+                    onChange={(event) =>
+                      setSignatureDraft((current) => ({
+                        ...current,
+                        client_remark: event.target.value,
+                      }))
+                    }
+                    fullWidth
+                  />
+                ) : null}
+              </>
+            ) : null}
+            {!signatureDraft.is_refused && signatureDraft.signature_image_data ? (
               <Box
                 component="img"
                 src={signatureDraft.signature_image_data}
@@ -1928,16 +2067,18 @@ export default function RequestDetailsPage() {
                 }}
               />
             ) : null}
-            <SignaturePad
-              key={signatureDialogRole || 'signature'}
-              onChange={({ imageDataUrl, hasSignature }) =>
-                setSignatureDraft((current) => ({
-                  ...current,
-                  signature_image_data: imageDataUrl,
-                  has_signature: hasSignature,
-                }))
-              }
-            />
+            {!signatureDraft.is_refused ? (
+              <SignaturePad
+                key={`${signatureDialogRole || 'signature'}-${signatureDraft.is_refused ? 'refused' : 'signed'}`}
+                onChange={({ imageDataUrl, hasSignature }) =>
+                  setSignatureDraft((current) => ({
+                    ...current,
+                    signature_image_data: imageDataUrl,
+                    has_signature: hasSignature,
+                  }))
+                }
+              />
+            ) : null}
           </Stack>
         </DialogContent>
         <DialogActions>
@@ -1947,8 +2088,9 @@ export default function RequestDetailsPage() {
             disabled={
               !signatureDialogRole ||
               !signatureDraft.signer_name.trim() ||
-              !signatureDraft.has_signature ||
-              !signatureDraft.signature_image_data ||
+              (!signatureDraft.is_refused &&
+                (!signatureDraft.has_signature || !signatureDraft.signature_image_data)) ||
+              (signatureDraft.has_client_remark && !signatureDraft.client_remark.trim()) ||
               signatureMutation.isPending
             }
             onClick={() => signatureDialogRole && signatureMutation.mutate(signatureDialogRole)}

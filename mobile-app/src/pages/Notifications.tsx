@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { AxiosError } from 'axios';
 import {
   Alert,
   Box,
@@ -53,6 +54,7 @@ export default function NotificationsPage() {
       return data;
     },
   });
+  const notificationsError = notificationsQuery.error as AxiosError<{ detail?: string }> | null;
 
   const refreshNotifications = async () => {
     await queryClient.invalidateQueries({ queryKey: ['mobile-notifications'] });
@@ -104,7 +106,11 @@ export default function NotificationsPage() {
           </Box>
         ) : null}
 
-        {notificationsQuery.isError ? <Alert severity="error">{t('common.error')}</Alert> : null}
+        {notificationsQuery.isError ? (
+          <Alert severity="error">
+            {notificationsError?.response?.data?.detail || t('common.error')}
+          </Alert>
+        ) : null}
 
         {notificationsQuery.data?.map((notification) => {
           const localized = localizeNotification(notification);

@@ -1,6 +1,5 @@
 from typing import Any, List
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.encoders import jsonable_encoder
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -121,18 +120,24 @@ def _replace_user_permissions(
     permission_codes: list[str] | None,
     actor_user_id: str,
 ) -> None:
-    db.query(models.UserPermission).filter(models.UserPermission.user_id == user.id).delete()
-    if user.role == models.UserRole.ADMIN:
-        return
+    normalized_permissions: list[str] = []
+    if user.role != models.UserRole.ADMIN:
+        normalized_permissions = _normalize_permissions(permission_codes)
 
-    for permission_code in _normalize_permissions(permission_codes):
-        db.add(
-            models.UserPermission(
-                user_id=user.id,
-                permission_code=permission_code,
-                created_by_user_id=actor_user_id,
-            )
+    # Remove current rows first and flush the deletes before inserting the new
+    # collection. This avoids both stale ORM instances and unique constraint
+    # collisions when a permission code exists in both the old and new sets.
+    user.permission_entries = []
+    db.flush()
+
+    user.permission_entries = [
+        models.UserPermission(
+            user_id=user.id,
+            permission_code=permission_code,
+            created_by_user_id=actor_user_id,
         )
+        for permission_code in normalized_permissions
+    ]
 
 
 def _sync_role_template_users(db: Session, role_template: models.RoleTemplate, *, actor_user_id: str) -> None:
@@ -382,7 +387,6 @@ def update_user(
             detail="The user with this id does not exist in the system",
         )
     
-    obj_data = jsonable_encoder(user)
     update_data = user_in.dict(exclude_unset=True)
     permissions = update_data.pop("permissions", None)
     next_role_template_id = update_data.pop("role_template_id", None) if "role_template_id" in update_data else None
@@ -392,9 +396,8 @@ def update_user(
         del update_data["password"]
         update_data["password_hash"] = hashed_password
         
-    for field in obj_data:
-        if field in update_data:
-            setattr(user, field, update_data[field])
+    for field, value in update_data.items():
+        setattr(user, field, value)
 
     role_template = None
     role_template_updated = "role_template_id" in user_in.dict(exclude_unset=True)
