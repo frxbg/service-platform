@@ -248,6 +248,10 @@ function formatRunningDuration(totalSeconds: number) {
   return [hours, minutes, seconds].map((value) => String(value).padStart(2, '0')).join(':');
 }
 
+function equipmentStepSkipStorageKey(requestId: string) {
+  return `mobile-request:${requestId}:equipment-step-skipped`;
+}
+
 export default function RequestDetailsPage() {
   const { requestId = '' } = useParams();
   const { t, i18n } = useTranslation();
@@ -272,6 +276,7 @@ export default function RequestDetailsPage() {
   const [equipmentDraft, setEquipmentDraft] = useState<EquipmentDraft>(() => createEmptyEquipmentDraft());
   const [travelReviewDraft, setTravelReviewDraft] = useState<TravelReviewDraft | null>(null);
   const [offlineDrafts, setOfflineDrafts] = useState<Partial<Record<OfflineDraftKind, OfflineDraftRecord>>>({});
+  const [equipmentStepSkipped, setEquipmentStepSkipped] = useState(false);
 
   const persistOfflineDraft = <T,>(
     kind: OfflineDraftKind,
@@ -549,9 +554,18 @@ export default function RequestDetailsPage() {
     },
     onSuccess: async () => {
       setEquipmentDialogOpen(false);
+      persistEquipmentStepSkipped(false);
       resetEquipmentDraft();
       removeOfflineDraft('equipment');
-      setToastMessage(t('requestDetails.equipmentSuccess'));
+      if (!hasWorkLogs) {
+        if (!isMeaningfulWorkLogDraft(workLogDraft)) {
+          setWorkLogDraft(createDefaultWorkLogDraft());
+        }
+        setWorkLogDialogOpen(true);
+        setToastMessage(t('requestDetails.equipmentContinueWorkLog'));
+      } else {
+        setToastMessage(t('requestDetails.equipmentSuccess'));
+      }
       await invalidateRequestData();
     },
     onError: () => {
@@ -666,6 +680,18 @@ export default function RequestDetailsPage() {
     return Math.max(Math.floor((travelTick - startedAt) / 1000), 0);
   }, [activeTravelLog, travelTick]);
 
+  const persistEquipmentStepSkipped = (value: boolean) => {
+    setEquipmentStepSkipped(value);
+    if (!requestId) {
+      return;
+    }
+    if (value) {
+      window.localStorage.setItem(equipmentStepSkipStorageKey(requestId), '1');
+      return;
+    }
+    window.localStorage.removeItem(equipmentStepSkipStorageKey(requestId));
+  };
+
   useEffect(() => {
     if (!requestId) {
       return;
@@ -702,6 +728,9 @@ export default function RequestDetailsPage() {
 
     const savedSignature = savedDrafts.signature?.payload as SignatureDraft | undefined;
     setSignatureDraft(withSignatureDraftDefaults(savedSignature));
+    setEquipmentStepSkipped(
+      window.localStorage.getItem(equipmentStepSkipStorageKey(requestId)) === '1',
+    );
   }, [requestId]);
 
   useEffect(() => {
@@ -712,6 +741,12 @@ export default function RequestDetailsPage() {
     const timer = window.setInterval(() => setTravelTick(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, [activeTravelLog]);
+
+  useEffect(() => {
+    if (request?.equipment_assets.length) {
+      persistEquipmentStepSkipped(false);
+    }
+  }, [request?.equipment_assets.length]);
 
   useEffect(() => {
     if (!materialDialogOpen || !materialSearch.trim()) {
@@ -858,6 +893,7 @@ export default function RequestDetailsPage() {
     resetEquipmentDraft();
     setSignatureDraft(createEmptySignatureDraft());
     setSignatureDialogRole(null);
+    persistEquipmentStepSkipped(false);
   };
 
   const applySiteEquipment = (equipmentKey: string) => {
@@ -887,6 +923,8 @@ export default function RequestDetailsPage() {
   };
 
   const isTerminalRequest = ['COMPLETED', 'CLOSED', 'CANCELLED'].includes(request?.status || '');
+  const hasEquipmentEntries = Boolean(request?.equipment_assets.length);
+  const equipmentStepCompleted = hasEquipmentEntries || equipmentStepSkipped;
   const hasWorkLogs = Boolean(request?.work_logs.length);
   const hasTechnicianSignature = Boolean(signaturesByRole.technician && !signaturesByRole.technician.is_refused);
   const hasClientSignatureStep = Boolean(signaturesByRole.client);
@@ -906,11 +944,14 @@ export default function RequestDetailsPage() {
     request.current_assignment_status === 'accepted' &&
     !isTerminalRequest;
   const canAddPostWorkEntries = canAddOperationalEntries && hasWorkLogs;
+  const canHandleEquipmentStep = canAddOperationalEntries && !hasWorkLogs;
   const canManageTravel = Boolean(request?.assigned_to_me) && !isTerminalRequest && !hasWorkLogs;
   const canCaptureSignatures = Boolean(request?.assigned_to_me) && !isTerminalRequest && hasWorkLogs;
   const canCompleteRequest = Boolean(request?.can_complete) && !isTerminalRequest && hasWorkLogs;
-  const workflowStageMessage = !hasWorkLogs
-    ? t('requestDetails.postWorkActionsLocked')
+  const workflowStageMessage = !equipmentStepCompleted
+    ? t('requestDetails.equipmentStepFirst')
+    : !hasWorkLogs
+      ? t('requestDetails.workLogStepNext')
     : !hasTechnicianSignature
       ? t('requestDetails.signTechnicianFirst')
       : !hasClientSignatureStep
@@ -1010,8 +1051,14 @@ export default function RequestDetailsPage() {
                   </Box>
                   <StatusPill status={request.status} />
                 </Stack>
-
-                <Alert severity="info">{t('requestDetails.operationalOnly')}</Alert>
+                <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap">
+                  <DetailRow label={t('requestDetails.site')} value={request.site_name || request.site_code} />
+                  <DetailRow label={t('requestDetails.city')} value={request.city || t('common.notAvailable')} />
+                  <DetailRow
+                    label={t('requestDetails.reportedAt')}
+                    value={formatDateTime(request.reported_at, i18n.resolvedLanguage || i18n.language)}
+                  />
+                </Stack>
 
                 <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                   <Chip label={translatePriority(request.priority, t)} />
@@ -1088,7 +1135,23 @@ export default function RequestDetailsPage() {
                       {t('requestDetails.stopTravel')}
                     </Button>
                   ) : null}
-                  {canAddOperationalEntries ? (
+                  {canHandleEquipmentStep ? (
+                    <Button variant="outlined" onClick={openEquipmentDialog}>
+                      {hasEquipmentEntries
+                        ? t('requestDetails.addEquipment')
+                        : t('requestDetails.equipmentStep')}
+                    </Button>
+                  ) : null}
+                  {canHandleEquipmentStep && !equipmentStepCompleted ? (
+                    <Button
+                      variant="text"
+                      color="inherit"
+                      onClick={() => persistEquipmentStepSkipped(true)}
+                    >
+                      {t('common.skip')}
+                    </Button>
+                  ) : null}
+                  {canAddOperationalEntries && equipmentStepCompleted ? (
                     <Button variant="outlined" onClick={openWorkLogDialog}>
                       {t('requestDetails.addWorkLog')}
                     </Button>
@@ -1098,7 +1161,7 @@ export default function RequestDetailsPage() {
                       {t('requestDetails.addMaterial')}
                     </Button>
                   ) : null}
-                  {canAddPostWorkEntries ? (
+                  {hasWorkLogs ? (
                     <Button variant="outlined" onClick={openEquipmentDialog}>
                       {t('requestDetails.addEquipment')}
                     </Button>

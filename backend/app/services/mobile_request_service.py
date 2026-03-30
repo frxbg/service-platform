@@ -1047,7 +1047,6 @@ class MobileRequestService:
         assignment = MobileRequestService._get_my_assignment(request, current_user)
         if not assignment:
             raise HTTPException(status_code=400, detail="You do not have an active assignment for this request")
-        MobileRequestService._ensure_work_started(request)
 
         ServiceRequestService.add_equipment_asset(
             db,
